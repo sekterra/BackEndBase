@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.safety.wkod.mapper.WkodMasterMapper">
+    <select id="getWkodMasters" parameterType="HashMap" resultType="com.she.safety.model.WkodMatMst">
+		select swm.wkod_no      				--작업허가서ID
+			,swm.wkod_num      					--작업허가NO
+			,swm.wkod_kind_cd   				--작업종류코드
+			,WKCode.code_nm	as wkod_kind_nm 	--작업종류명
+			,swm.work_ymd      					--작업일자
+			,swm.work_start_time    			--작업시작시간
+			,swm.work_end_time      			--작업종료시간
+			,swm.work_over_time     			--작업연장시간
+			,swm.work_complete_time 			--작업완료일시
+			,swm.work_title      				--작업명
+			,swm.work_content      				--작업내용
+			,swm.wkod_step_cd      				--진행단계
+			,PSCode.code_nm as wkod_step_nm 	--진행단계명
+			,swm.req_step_confirm_yn    		--신청단계확인여부
+			,swm.pub_step_confirm_yn    		--발행단계확인여부
+			,swm.app_step_confirm_yn    		--승인단계확인여부
+			,swm.plant_cd      					--작업지역_공장코드
+			,swm.process_cd      				--작업지역_공정코드
+			,CPCode.process_nm					--작업지역_공정명
+			,swm.work_area      				--작업지역_상세장소
+			,swm.req_user_id      				--신청부서담당자ID
+			,swm.req_user_nm      				--신청부서담당자성명
+			,swm.req_dept_cd      				--신청부서코드
+			,swm.req_dept_nm      				--신청부서명
+			,swm.req_ymd      					--신청일
+			,swm.pub_dept_cd      				--발행부서코드
+			,swm.pub_dept_nm      				--발행부서명
+			,swm.pub_mgr_nm      				--감독자명
+			,swm.pub_mgr_id      				--감독자ID
+			,swm.pub_mgr_tel      				--감독자 전화번호
+			,swm.subconn_nm      				--작업업체명
+			,swm.subconn_user_nm      			--작업업체담당자명
+			,swm.subconn_user_tel      			--작업업체담당자 전화번호
+			,swm.worker_numb      				--작업인원수
+			,swm.special_instructions   		--특별지시사항
+			,swm.handle_chem_content    		--취급물질(내용)
+			,swm.pub_user_id      				--발행부서확인자ID
+			,swm.pub_user_nm      				--발행부서확인자성명
+			,swm.pub_confirm_dt      			--발행부서확인일시
+			,swm.app_user_id      				--승인부서확인자ID
+			,swm.app_user_nm      				--승인부서확인자성명
+			,swm.app_dept_cd      				--승인부서코드
+			,swm.app_dept_nm      				--승인부서명
+			,swm.app_confirm_dt      			--승인부서확인일시
+			,swm.over_user_id      				--연장확인자ID
+			,swm.over_user_nm      				--연장확인자명
+			,swm.over_confirm_dt      			--연장확인일시
+			,swm.locate_pnt_x      				--X축_좌표위치
+			,swm.locate_pnt_y      				--Y축_좌표위치
+			,swm.del_yn      					--삭제여부
+			,swm.spm_etc      					--안전보호구 기타
+		 from saf_wkod_master	swm
+		 left outer join com_code_master WKCode 
+		 on swm.wkod_kind_cd = WKCode.code 
+		 and WKCode.code_group_cd = 'WKOD_KIND'
+		 left outer join com_code_master PSCode 
+		 on swm.wkod_step_cd = PSCode.code 
+		 and PSCode.code_group_cd = 'WKOD_STEP'
+		 left outer join com_process CPCode 
+		 on swm.process_cd = CPCode.process_no
+		 where 1=1
+		 <if test="reqDeptCd != null and !reqDeptCd.equals('')">
+			and swm.req_dept_cd = #{reqDeptCd}
+		 </if>
+		 <if test="wkodKindCd != null and !wkodKindCd.equals('')">
+			and swm.wkod_kind_cd = #{wkodKindCd}
+		 </if>
+		 <if test="pubDeptCd != null and !pubDeptCd.equals('')">
+			and swm.pub_dept_cd = #{pubDeptCd}
+		 </if>
+		 <if test="wkodStepCd != null and !wkodStepCd.equals('')">
+			and swm.wkod_step_cd = #{wkodStepCd}
+		 </if>
+		 <if test="wkodNum != null and !wkodNum.equals('')">
+			and swm.wkod_num like '%' + #{wkodNum} + '%'
+		 </if>
+		 <if test="workTitle != null and !workTitle.equals('')">
+			and swm.chk_item_nm like '%' + #{workTitle} + '%'
+		 </if>
+		 <if test="searchFlag != null and !searchFlag.equals('')">
+		 	and swm.wkod_step_cd = #{searchFlag}
+		 </if>
+    </select>
+    
+    <select id="getWkodMaster" parameterType="HashMap" resultType="com.she.safety.model.WkodMatMst">
+		select swm.wkod_no      				--작업허가서ID
+			,swm.wkod_num      					--작업허가NO
+			,swm.wkod_kind_cd   				--작업종류코드
+			,WKCode.code_nm	as wkod_kind_nm 	--작업종류명
+			,swm.work_ymd      					--작업일자
+			,swm.work_start_time    			--작업시작시간
+			,swm.work_end_time      			--작업종료시간
+			,swm.work_over_time     			--작업연장시간
+			,swm.work_complete_time 			--작업완료일시
+			,swm.work_title      				--작업명
+			,swm.work_content      				--작업내용
+			,swm.wkod_step_cd      				--진행단계
+			,PSCode.code_nm as wkod_step_nm 	--진행단계명
+			,swm.req_step_confirm_yn    		--신청단계확인여부
+			,swm.pub_step_confirm_yn    		--발행단계확인여부
+			,swm.app_step_confirm_yn    		--승인단계확인여부
+			,swm.plant_cd      					--작업지역_공장코드
+			,swm.process_cd      				--작업지역_공정코드
+			,CPCode.process_nm					--작업지역_공정명
+			,swm.work_area      				--작업지역_상세장소
+			,swm.req_user_id      				--신청부서담당자ID
+			,swm.req_user_nm      				--신청부서담당자성명
+			,swm.req_dept_cd      				--신청부서코드
+			,swm.req_dept_nm      				--신청부서명
+			,swm.req_ymd      					--신청일
+			,swm.pub_dept_cd      				--발행부서코드
+			,swm.pub_dept_nm      				--발행부서명
+			,swm.pub_mgr_nm      				--감독자명
+			,swm.pub_mgr_id      				--감독자ID
+			,swm.pub_mgr_tel      				--감독자 전화번호
+			,swm.subconn_nm      				--작업업체명
+			,swm.subconn_user_nm      			--작업업체담당자명
+			,swm.subconn_user_tel      			--작업업체담당자 전화번호
+			,swm.worker_numb      				--작업인원수
+			,swm.special_instructions   		--특별지시사항
+			,swm.handle_chem_content    		--취급물질(내용)
+			,swm.pub_user_id      				--발행부서확인자ID
+			,swm.pub_user_nm      				--발행부서확인자성명
+			,swm.pub_confirm_dt      			--발행부서확인일시
+			,swm.app_user_id      				--승인부서확인자ID
+			,swm.app_user_nm      				--승인부서확인자성명
+			,swm.app_dept_cd      				--승인부서코드
+			,swm.app_dept_nm      				--승인부서명
+			,swm.app_confirm_dt      			--승인부서확인일시
+			,swm.over_user_id      				--연장확인자ID
+			,swm.over_user_nm      				--연장확인자명
+			,swm.over_confirm_dt      			--연장확인일시
+			,swm.locate_pnt_x      				--X축_좌표위치
+			,swm.locate_pnt_y      				--Y축_좌표위치
+			,swm.del_yn      					--삭제여부
+			,swm.spm_etc      					--안전보호구 기타
+		 from saf_wkod_master	swm
+		 left outer join com_code_master WKCode 
+		 on swm.wkod_kind_cd = WKCode.code 
+		 and WKCode.code_group_cd = 'WKOD_KIND'
+		 left outer join com_code_master PSCode 
+		 on swm.wkod_step_cd = PSCode.code 
+		 and PSCode.code_group_cd = 'WKOD_STEP'
+		 left outer join com_process CPCode 
+		 on swm.process_cd = CPCode.process_no
+		 where 1=1
+		 <if test="wkodNo != null and !wkodNo.equals('')">
+		 	and swm.wkod_no = #{wkodNo}
+		 </if>
+    </select>
+    
+    <select id="getSafWkodUseSpe" parameterType="HashMap" resultType="String">
+		select swus.wkod_spe_cd					--안전작업사용보호구 코드
+		from saf_wkod_use_spe swus
+		where 1=1
+		<if test="wkodNo != null and !wkodNo.equals('')">
+			and swus.wkod_no = #{wkodNo}
+		</if>
+    </select>
+    
+    <select id="getWkodMatMstsSelectList" resultType="com.she.safety.model.WkodMatMst">
+		select swmm.mat_mst_no
+			,swmm.wkod_mat_class
+			,WMCCode.code_nm as wkod_mat_class_nm
+			,swmm.wkod_mat_nm
+			,swmm.use_yn
+			,case when swmm.use_yn = 'Y' then '사용'
+			else '미사용' end as use_yn_nm
+			,swmm.sort_order
+		from saf_wkod_mat_mst swmm
+		inner join com_code_master WMCCode 
+		on swmm.wkod_mat_class = WMCCode.code 
+		and WMCCode.code_group_cd = 'WKOD_MAT_CLASS'
+		inner join saf_wkod_mat swm 
+		on swmm.mat_mst_no = swm.mat_mst_no 
+		and swm.wkod_no = #{wkodNo}
+		where 1=1
+		order by swmm.sort_order
+    </select>
+    
+    <select id="getWkodDepts" parameterType="HashMap" resultType="com.she.safety.model.WkodChkItem">
+		select swci.chk_item_no     				--점검항목ID
+			,swci.wkod_kind_cd      				--작업종류코드
+			,WKCode.code_nm as wkod_kind_nm			--작업종류명
+			,swci.wkod_duty_cd      				--점검부서구분
+			,CDTCode.code_nm as wkod_duty_nm		--점검부서명
+			,swci.chk_item_nm      					--점검항목명
+			,swci.use_yn      						--사용여부
+			,swci.sort_order      					--정렬순서
+		from saf_wkod_chk_item swci
+		inner join com_code_master WKCode 
+		on swci.wkod_kind_cd = WKCode.code 
+		and WKCode.code_group_cd = 'WKOD_KIND'
+		inner join com_code_master CDTCode 
+		on swci.wkod_duty_cd = CDTCode.code 
+		and CDTCode.code_group_cd = 'WKOD_DPTY'
+		left outer join saf_wkod_chk_result swcr 
+		on swci.chk_item_no = swcr.chk_item_no 
+		and swcr.wkod_no = #{wkodNo}
+		where 1=1
+		and swci.use_yn = 'Y'
+		and swci.wkod_duty_cd = #{searchFlag}
+		order by swci.sort_order
+    </select>
+    
+    <select id="getSelectedWkodDepts" parameterType="HashMap" resultType="com.she.safety.model.WkodChkItem">
+		select swci.chk_item_no     				--점검항목ID
+			,swci.wkod_kind_cd      				--작업종류코드
+			,WKCode.code_nm as wkod_kind_nm			--작업종류명
+			,swci.wkod_duty_cd      				--점검부서구분
+			,CDTCode.code_nm as wkod_duty_nm		--점검부서명
+			,swci.chk_item_nm      					--점검항목명
+			,swci.use_yn      						--사용여부
+			,swci.sort_order      					--정렬순서
+		from saf_wkod_chk_item swci
+		inner join com_code_master WKCode 
+		on swci.wkod_kind_cd = WKCode.code 
+		and WKCode.code_group_cd = 'WKOD_KIND'
+		inner join com_code_master CDTCode 
+		on swci.wkod_duty_cd = CDTCode.code 
+		and CDTCode.code_group_cd = 'WKOD_DPTY'
+		inner join saf_wkod_chk_result swcr 
+		on swci.chk_item_no = swcr.chk_item_no 
+		and swcr.wkod_no = #{wkodNo}
+		where 1=1
+		and swci.use_yn = 'Y'
+		and swci.wkod_duty_cd = #{searchFlag}
+		order by swci.sort_order
+    </select>
+</mapper>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.sample.mapper.SampleMapper">
+    <select id="sampleList" resultType="com.she.sample.model.tbTempModel">
+		select col1, col2, col3 from C_TB_TEMP;
+    </select>
+    
+    <insert id="sampleInsert" parameterType="com.she.sample.model.tbTempModel">
+        insert into
+        C_TB_TEMP (col1, col2, col3)
+        values(#{col1},#{col2},#{col3}) 
+    </insert>
+    
+    <delete id="sampleDelete" parameterType="int">
+        delete from C_TB_TEMP where col1 = #{col1}
+    </delete>
+    
+    <update id="sampleUpdate" parameterType="com.she.sample.model.tbTempModel">
+        update C_TB_TEMP
+            SET
+            col2 = #{col2}
+            ,col3 = #{col3}
+        where col1 = #{col1}
+    </update>
+    
+    
+</mapper>

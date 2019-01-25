@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.baseInfo.mapper.InterviewItemMapper">
+    <select id="getInterviewItems" resultType="com.she.health.model.InterviewItem">
+		with tb (
+			hea_inte_item_cd, hea_inte_item_nm, up_hea_inte_item_cd, remark, sort_order, use_yn, create_user_id, create_dt, update_user_id, update_dt
+			, up_hea_inte_item_nm
+			, depth, path_order, path_name
+		) as (
+			select hea_inte_item_cd, hea_inte_item_nm, up_hea_inte_item_cd, remark, sort_order, use_yn
+				, create_user_id, create_dt, update_user_id, update_dt
+				, convert(varchar(100),null) as up_hea_inte_item_nm
+				, 1 as depth
+				, convert(varchar(100), convert(varchar(100), len(sort_order))+convert(varchar(100), sort_order)) as path_order
+				, convert(varchar(1000), hea_inte_item_nm) as path_name
+			from hea_interview_item
+			where up_hea_inte_item_cd is null
+			or up_hea_inte_item_cd = ''
+			<if test="useYn != null and !useYn.equals('')">
+			and use_yn = #{useYn}
+			</if>
+			union all
+			select t.hea_inte_item_cd, t.hea_inte_item_nm, t.up_hea_inte_item_cd, t.remark, t.sort_order, t.use_yn
+				, t.create_user_id, t.create_dt, t.update_user_id, t.update_dt
+				, convert(varchar(100),ut.hea_inte_item_nm) as up_hea_inte_item_nm
+				, ut.depth + 1 as depth
+				, convert(varchar(100), ut.path_order+convert(varchar(100), convert(varchar(100), len(t.sort_order))+convert(varchar(100), t.sort_order))) as path_order
+				, convert(varchar(1000), ut.path_name+'>'+convert(varchar(1000), t.hea_inte_item_nm)) as path_name
+			from hea_interview_item t
+			inner join tb ut
+			on t.up_hea_inte_item_cd = ut.hea_inte_item_cd
+			where 1=1
+			<if test="useYn != null and !useYn.equals('')">
+			and t.use_yn = #{useYn}
+			</if>
+		)
+		select t.depth, t.path_name, t.hea_inte_item_cd, t.hea_inte_item_nm, t.up_hea_inte_item_cd, t.up_hea_inte_item_nm, t.remark, t.sort_order, t.use_yn
+			, t.create_user_id, cu.user_nm as create_user_nm, t.create_dt
+			, t.update_user_id, uu.user_nm as update_user_nm, t.update_dt
+		from tb t
+		inner join com_user cu
+		on t.create_user_id = cu.user_id
+		left outer join com_user uu
+		on t.update_user_id = uu.user_id
+		order by t.path_order
+    </select>
+    
+    <select id="getInterviewItem" resultType="com.she.health.model.InterviewItem">
+		select t.hea_inte_item_cd, t.hea_inte_item_nm, t.up_hea_inte_item_cd, ut.hea_inte_item_nm as up_hea_inte_item_nm
+			, t.remark, t.sort_order, t.use_yn
+			, t.create_user_id, cu.user_nm as create_user_nm, t.create_dt
+			, t.update_user_id, uu.user_nm as update_user_nm, t.update_dt
+		from hea_interview_item t
+		inner join com_user cu
+		on t.create_user_id = cu.user_id
+		left outer join com_user uu
+		on t.update_user_id = uu.user_id
+		left outer join hea_interview_item ut
+		on t.up_hea_inte_item_cd = ut.hea_inte_item_cd
+		where 1=1
+		and t.hea_inte_item_cd = #{heaInteItemCd}
+    </select>
+    
+    <insert id="createInterviewItem" parameterType="com.she.health.model.InterviewItem">
+    	<selectKey keyProperty="heaInteItemCd" resultType="String" order="BEFORE">
+	    	select convert(varchar(5), replicate('0', 5-len(convert(varchar(5), next value for seq_hea_interview_item)))
+				+ convert(varchar(5), (select current_value from sys.sequences where lower(name)='seq_hea_interview_item'))) as hea_inte_item_cd
+	  	</selectKey>
+        insert into hea_interview_item (
+			hea_inte_item_cd
+			, hea_inte_item_nm
+			, up_hea_inte_item_cd
+			, remark
+			, sort_order
+			, use_yn
+			, create_user_id
+			, create_dt
+		) 
+		values (
+			#{heaInteItemCd}
+			, #{heaInteItemNm}
+			, #{upHeaInteItemCd}
+			, #{remark}
+			, #{sortOrder}
+			, #{useYn}
+			, #{createUserId}
+			, getdate()
+		)
+    </insert>
+    
+    <update id="updateInterviewItem" parameterType="com.she.health.model.InterviewItem">
+        update hea_interview_item
+		set hea_inte_item_nm = #{heaInteItemNm}
+			,up_hea_inte_item_cd = #{upHeaInteItemCd}
+			,remark = #{remark}
+			,sort_order = #{sortOrder}
+			,use_yn = #{useYn}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+        where hea_inte_item_cd = #{heaInteItemCd}
+    </update>
+	
+</mapper>

@@ -1,0 +1,15 @@
+package com.she.common.mapper;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
+
+import com.she.common.model.Dept;
+
+@Mapper
+@Repository("com.she.common.mapper.CommonMapper")
+public interface CommonMapper
+{
+	public List<Dept> getDepts() throws Exception;
+}

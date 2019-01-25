@@ -1,0 +1,97 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+package com.she.safety.wkod.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.she.safety.model.WkodChkItem;
+import com.she.safety.model.WkodMaster;
+import com.she.safety.wkod.mapper.WkodMasterMapper;
+
+/**
+ * 건강검진기관 기능정의
+ *
+ */
+@Service
+public class WkodMasterService 
+{
+	
+	@Autowired
+	private WkodMasterMapper wkodMasterMapper;
+	
+	/**
+	 * 작업허가서 조회
+	 * @param workYmd 작업기간 코드
+	 * @param reqDeptCd 신청부서
+	 * @param wkodKindCd 작업종류
+	 * @param pubDeptCd 발행부서
+	 * @param wkodStepCd 진행단계
+	 * @param wkodNum 작업NO
+	 * @param workTitle 작업명
+	 * @param searchFlag 조회구분자
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	public List<WkodMaster> getWkodMasters(String workYmd, String reqDeptCd, String wkodKindCd, String pubDeptCd,
+										   String wkodStepCd, String wkodNum, String workTitle, String searchFlag) throws Exception 
+	{
+		return wkodMasterMapper.getWkodMasters(workYmd, reqDeptCd, wkodKindCd, pubDeptCd, wkodStepCd, wkodNum, workTitle, searchFlag);
+	}
+	
+	/**
+	 * 작업허가서 상세 조회
+	 * @param wkodNo 작업허가서 ID
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	public WkodMaster getWkodMaster(String wkodNo) throws Exception 
+	{
+		return wkodMasterMapper.getWkodMaster(wkodNo);
+	}
+	
+	/**
+	 * 작업허가서 안전보호구 조회
+	 * @param wkodNo 작업허가서 ID
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	public List<String> getSafWkodUseSpe(String wkodNo) throws Exception 
+	{
+		return wkodMasterMapper.getSafWkodUseSpe(wkodNo);
+	}
+	
+	/**
+	 * 안전점검확인 결과 조회
+	 * @param wkodNo 작업허가서 ID
+	 * @param searhFlag 조회구분
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	public List<WkodChkItem> getWkodDepts(String wkodNo, String searchFlag) throws Exception 
+	{
+		return wkodMasterMapper.getWkodDepts(wkodNo, searchFlag);
+	}
+	
+	/**
+	 * 안전점검확인 결과(저장된 데이터) 조회
+	 * @param wkodNo 작업허가서 ID
+	 * @param searhFlag 조회구분
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	public List<WkodChkItem> getSelectedWkodDepts(String wkodNo, String searchFlag) throws Exception 
+	{
+		return wkodMasterMapper.getSelectedWkodDepts(wkodNo, searchFlag);
+	}
+}

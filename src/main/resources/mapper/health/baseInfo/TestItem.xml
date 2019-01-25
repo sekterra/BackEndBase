@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.baseInfo.mapper.TestItemMapper">
+    <select id="getTestItems" resultType="com.she.health.model.TestItem">
+		select hea_test_item_cd		-- key
+			,hea_test_item_nm		-- 검사항목명칭
+			,hea_test_class_cd	-- 검사분류코드
+			,testclass.code_nm hea_test_class_nm --검사분류
+			,unit					-- 단위
+			,hea_result_type_cd	-- 결과유형코드
+			,resulttype.code_nm hea_result_type_nm	-- 결과유형
+			,remark				-- 분석항목 설명
+			,spec_ref				-- 참고치
+			,hti.sort_order		-- 출력순서
+			,hti.use_yn
+			,case 
+			  when hti.use_yn = 'Y' then '사용'
+				else '미사용'
+			end as use_yn_nm			-- 사용여부
+			,hti.create_user_id
+			,createUser.user_nm as create_user_nm
+			,hti.create_dt
+			,hti.update_user_id
+			,updateUser.user_nm as update_user_nm
+			,hti.update_dt
+		from hea_test_item hti
+		inner join com_code_master resulttype 
+		on hti.hea_result_type_cd = resulttype.code 
+		and resulttype.code_group_cd = 'HEA_RESULT_TYPE'
+		inner join com_code_master testclass 
+		on hti.hea_test_class_cd = testclass.code 
+		and testclass.code_group_cd = 'HEA_TEST_CLASS'
+		inner join com_user createUser 
+		on hti.create_user_id = createUser.user_id
+		left outer join com_user updateUser 
+		on hti.update_user_id = updateUser.user_id
+		where 1=1
+		and hti.hea_test_item_nm like '%' + #{heaTestItemNm} + '%'
+		<if test="useYn != null and !useYn.equals('')">
+		and hti.use_yn = #{useYn}
+		</if>
+		<if test="heaTestClassCd != null and !heaTestClassCd.equals('')">
+		and hea_test_class_cd = #{heaTestClassCd}
+		</if>
+		<if test="heaCheckupOrgNo != null and heaCheckupOrgNo > 0 and year != null and !year.equals('') and heaCheckupTypeCd != null and !heaCheckupTypeCd.equals('')">
+		and not exists (select hea_test_item_cd 
+				from hea_checkup_org_test_item hcoti 
+				where hcoti.hea_test_item_cd = hti.hea_test_item_cd
+				and hcoti.hea_checkup_org_no = #{heaCheckupOrgNo}
+				and hcoti.year = #{year}
+				and hcoti.hea_checkup_type_cd = #{heaCheckupTypeCd}
+				and hcoti.optional_yn = #{optionalYn})
+		</if>
+		order by testclass.sort_order, hti.sort_order
+    </select>
+    
+    <select id="getTestItem" resultType="com.she.health.model.TestItem">
+		select t.hea_test_item_cd
+			,t.hea_test_class_cd
+			,t.hea_test_item_nm
+			,t.unit
+			,t.hea_result_type_cd
+			,c.code_nm as hea_result_type_nm
+			,t.spec_ref
+			,t.remark
+			,t.sort_order
+			,t.use_yn
+			,t.create_user_id
+			,cu.user_nm as create_user_nm
+			,t.create_dt
+			,t.update_user_id
+			,uu.user_nm as update_user_nm
+			,t.update_dt
+		from hea_test_item t
+		inner join com_code_master c
+		on c.code_group_cd = 'HEA_RESULT_TYPE'
+		and t.hea_result_type_cd = c.code
+		inner join com_user cu
+		on t.create_user_id = cu.user_id
+		left outer join com_user uu
+		on t.update_user_id = uu.user_id
+		where t.hea_test_item_cd = #{heaTestItemCd}
+    </select>
+    
+    <insert id="createTestItem" parameterType="com.she.health.model.TestItem">
+    	<selectKey keyProperty="heaTestItemCd" resultType="String" order="BEFORE">
+    		select replicate('0',5 - len(convert(varchar(5), next value for seq_hea_test_item))) 
+    			+ convert(varchar(5), (select current_value from sys.sequences where lower(name)='seq_hea_test_item')) as hea_test_item_cd
+	  	</selectKey>
+        insert into hea_test_item
+	         (hea_test_item_cd
+	         ,hea_test_class_cd
+	         ,hea_test_item_nm
+	         ,unit
+	         ,hea_result_type_cd
+	         ,spec_ref
+	         ,remark
+	         ,sort_order
+	         ,use_yn
+	         ,create_user_id
+	         ,create_dt)
+	     values
+	   		(#{heaTestItemCd}
+	   		,#{heaTestClassCd}
+	   		,#{heaTestItemNm}
+	   		,#{unit}
+	   		,#{heaResultTypeCd}
+	   		,#{specRef}
+	   		,#{remark}
+	   		,#{sortOrder}
+	   		,#{useYn}
+	   		,#{createUserId}
+	   		,getDate()
+	   		)
+    </insert>
+    
+    <update id="updateTestItem" parameterType="com.she.health.model.TestItem">
+		update hea_test_item
+		set hea_test_class_cd = #{heaTestClassCd}
+			,hea_test_item_nm = #{heaTestItemNm}
+			,unit = #{unit}
+			,hea_result_type_cd = #{heaResultTypeCd}
+			,spec_ref = #{specRef}
+			,remark = #{remark}
+			,sort_order = #{sortOrder}
+			,use_yn = #{useYn}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+		where hea_test_item_cd = #{heaTestItemCd}
+    </update>
+    
+    <select id="getCheckupTestItems" resultType="com.she.health.model.CheckupTestItem">
+		select checkupclass.code_nm	hea_checkup_class_nm		--검진종류
+			,checkupclass.code hea_checkup_class_cd			--검진종류 key
+			,hti.hea_test_item_cd		--검진항목 key
+			,hti.hea_test_item_nm		--검진항목
+			,hcti.hea_checkup_type_cd 
+			,checkuptype.code_nm as hea_checkup_type_nm
+			,testclass.code_nm hea_test_class_nm			--검진검사
+			,hti.hea_test_class_cd		--검진검사 key
+			,hcti.hea_checkup_class_cd	--key
+			,hcti.sort_order
+			,hcti.create_user_id
+			,createUser.user_nm as create_user_nm
+			,hcti.create_dt
+			,hcti.update_user_id
+			,updateUser.user_nm as update_user_nm
+			,hcti.update_dt
+		from hea_checkup_test_item hcti
+		inner join hea_test_item hti 
+		on hti.hea_test_item_cd = hcti.hea_test_item_cd
+		inner join com_code_master checkupclass 
+		on checkupclass.code = hcti.hea_checkup_class_cd 
+		and checkupclass.code_group_cd = 'HEA_CHECKUP_CLASS'
+		inner join com_code_master testclass 
+		on testclass.code = hti.hea_test_class_cd 
+		and testclass.code_group_cd = 'HEA_TEST_CLASS'
+		inner join com_code_master checkuptype 
+		on checkuptype.code = hcti.hea_checkup_type_cd 
+		and checkuptype.code_group_cd = 'HEA_CHECKUP_TYPE'
+		inner join com_user createUser 
+		on hti.create_user_id = createUser.user_id
+		left outer join com_user updateUser 
+		on hti.update_user_id = updateUser.user_id
+		where 1=1
+		and hti.use_yn = 'Y'
+		and checkupclass.use_yn = 'Y'
+		and testclass.use_yn = 'Y'
+		<if test="heaCheckupClassCd != null and !heaCheckupClassCd.equals('')">
+		and hcti.hea_checkup_class_cd = #{heaCheckupClassCd}
+		</if>
+		<if test="heaCheckupTypeCd != null and !heaCheckupTypeCd.equals('')">
+		and hcti.hea_checkup_type_cd = #{heaCheckupTypeCd}
+		</if>
+		order by checkupclass.sort_order, hcti.sort_order
+    </select>
+    
+    <select id="getCheckupTestItemCount" parameterType="com.she.health.model.CheckupTestItem" resultType="int">
+    	select count(*)
+    	from hea_checkup_test_item hcti
+    	where 1=1
+    	and hcti.hea_checkup_class_cd = #{heaCheckupClassCd} 
+    	and hcti.hea_checkup_type_cd = #{heaCheckupTypeCd}
+    	and hcti.hea_test_item_cd = #{heaTestItemCd}
+    </select>
+    
+    <insert id="createCheckupTestItem" parameterType="com.she.health.model.CheckupTestItem">
+        insert into hea_checkup_test_item
+	        (hea_checkup_class_cd
+	        ,hea_test_item_cd
+	        ,hea_checkup_type_cd
+	        ,sort_order
+	        ,create_user_id
+	        ,create_dt)
+	     values
+	   		(#{heaCheckupClassCd}
+	   		,#{heaTestItemCd}
+	   		,#{heaCheckupTypeCd}
+	   		,#{sortOrder}
+	   		,#{createUserId}
+	   		,getDate()) 
+    </insert>
+    
+    <update id="updateCheckupTestItem" parameterType="com.she.health.model.CheckupTestItem">
+        update hea_checkup_test_item
+		set sort_order = #{sortOrder}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+        where hea_checkup_class_cd = #{heaCheckupClassCd}
+		and hea_test_item_cd = #{heaTestItemCd}
+		and hea_checkup_type_cd = #{heaCheckupTypeCd}
+    </update>
+    
+    <delete id="deleteCheckupTestItem" parameterType="com.she.health.model.CheckupTestItem">
+    	delete from hea_checkup_test_item 
+		where hea_checkup_class_cd = #{heaCheckupClassCd}
+		<if test="heaTestItemCd != null and !heaTestItemCd.equals('')">
+		and hea_test_item_cd = #{heaTestItemCd}
+		</if>
+		<if test="heaCheckupTypeCd != null and !heaCheckupTypeCd.equals('')">
+		and hea_checkup_type_cd = #{heaCheckupTypeCd}
+		</if>
+    </delete>
+    
+</mapper>

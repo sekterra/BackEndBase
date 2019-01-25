@@ -1,0 +1,669 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+
+package com.she.health.checkup.service;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.she.health.baseInfo.service.CheckupOrgService;
+import com.she.health.baseInfo.service.DiseaseService;
+import com.she.health.baseInfo.service.TestItemService;
+import com.she.health.checkup.mapper.CheckupResultMapper;
+import com.she.health.checkup.mapper.CheckupResultUploadMapper;
+import com.she.health.model.CheckupPlan;
+import com.she.health.model.CheckupPlanOrg;
+import com.she.health.model.CheckupResult;
+import com.she.health.model.CheckupResultDiag;
+import com.she.health.model.CheckupUser;
+import com.she.health.model.Disease;
+import com.she.health.model.TestItemResult;
+import com.she.manage.model.CodeMaster;
+import com.she.manage.service.CodeMasterService;
+import com.she.utils.ConstVal;
+import com.she.utils.ExcelReader;
+
+/**
+ * 건강검진결과 조회 기능정의
+ *
+ */
+@Service
+public class CheckupResultService
+{
+	@Autowired
+	private CheckupResultMapper checkupResultMapper;
+	
+	@Autowired
+	private CheckupResultUploadMapper checkupResultUploadMapper;
+	
+	@Autowired
+	private CheckupPlanService checkupPlanService;
+		
+	@Autowired
+	private DiseaseService DiseaseService;
+		
+	@Autowired
+	private CodeMasterService codeMasterService;
+	
+	/**
+	 * 
+	 * 건강검진결과 조회
+	 * @param userId 건강검진대상자
+	 * @param checkupYear 검진연도
+	 * @param heaCheckupPlanNo 검진계획
+	 * @param retirementYn 재직/퇴직
+	 * @param heaDiagnoseCds 판정(복수선택)
+	 * @param heaDiseaseClassCd 질환종류
+	 * @param heaDiseaseCd 질환
+	 * @param heaCheckedOrgNos 검진병원(복수선택)
+	 * @param userNm 사원명
+	 * @return 건강검진결과목록
+	 * @throws Exception
+	 */
+	public List<CheckupResult> getCheckupResults(
+			String userId,
+			String checkupYear, 
+			int heaCheckupPlanNo, 
+			String retirementYn, 
+			String[] heaDiagnoseCds,
+			String heaDiseaseClassCd,
+			String heaDiseaseCd,
+			int[] heaCheckedOrgNos,
+			String userNm) throws Exception
+	{		
+		return this.checkupResultMapper.getCheckupResults(
+				userId,
+				checkupYear, 
+				heaCheckupPlanNo, 
+				retirementYn, 
+				heaDiagnoseCds, 
+				heaDiseaseClassCd, 
+				heaDiseaseCd, 
+				heaCheckedOrgNos, 
+				userNm);
+	} 
+	
+	/**
+	 * 건강검진결과 상세 조회
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param userId 사용자아이디
+	 * @return 검진정보
+	 * @throws Exception
+	 */
+	public CheckupResult getCheckupResult(int heaCheckupPlanNo, String userId) throws Exception 
+	{		
+		return this.checkupResultMapper.getCheckupResult(heaCheckupPlanNo, userId);
+	}
+	
+	/**
+	 * 건강검진진단결과 조회
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param userId 사용자아이디
+	 * @return 소견및판정정보
+	 * @throws Exception
+	 */
+	public List<CheckupResultDiag> getCheckupResultDiags(int heaCheckupPlanNo, String userId) throws Exception 
+	{		
+		return this.checkupResultMapper.getCheckupResultDiags(heaCheckupPlanNo, userId);
+	}
+	
+	/**
+	 * 건강검진항목별 결과 조회
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param userId 사용자아이디
+	 * @param optionalYn 선택항목여부
+	 * @return 검진항목 목록
+	 * @throws Exception
+	 */
+	public List<TestItemResult> getTestItemResults(int heaCheckupPlanNo, String userId, String optionalYn) throws Exception 
+	{		
+		return this.checkupResultMapper.getTestItemResults(heaCheckupPlanNo, userId, optionalYn);
+	}
+	
+	/**
+	 * 건강검진결과 수정
+	 * @param checkupResult 건강검진결과
+	 * @return 수정 행 수
+	 * @throws Exception
+	 */
+	public int updateCheckupResult(CheckupResult checkupResult) throws Exception
+	{
+		return this.checkupResultMapper.updateCheckupResult(checkupResult);
+	}
+	
+	/**
+	 * 건강검진진단결과 등록
+	 * @param checkupResultDiag 건강검진진단결과
+	 * @return 등록행수
+	 * @throws Exception
+	 */
+	public int createCheckupResultDiag(CheckupResultDiag checkupResultDiag) throws Exception
+	{
+		return this.checkupResultMapper.createCheckupResultDiag(checkupResultDiag);
+	}
+	
+	/**
+	 * 건강검진진단결과 삭제
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param userId 사용자아이디
+	 * @param heaDiseaseCd 질환코드
+	 * @return 삭제행수
+	 * @throws Exception
+	 */
+	public int deleteCheckupResultDiag(int heaCheckupPlanNo, String userId, String heaDiseaseCd) throws Exception
+	{
+		return this.checkupResultMapper.deleteCheckupResultDiag(heaCheckupPlanNo, userId, heaDiseaseCd);
+	}
+	
+	/**
+	 * 건강검진진단결과 삭제
+	 * @param checkupResultDiags 삭제목록
+	 * @return 삭제행수
+	 * @throws Exception
+	 */
+	@Transactional
+	public int deleteCheckupResultDiags(List<CheckupResultDiag> checkupResultDiags) throws Exception
+	{
+		int count = 0;
+		for (CheckupResultDiag checkupResultDiag : checkupResultDiags)
+		{
+			count += this.checkupResultMapper.deleteCheckupResultDiag(
+					checkupResultDiag.getHeaCheckupPlanNo(), 
+					checkupResultDiag.getUserId(), 
+					checkupResultDiag.getHeaDiseaseCd());
+		}
+		
+		return count;
+	}
+	
+	/**
+	 * 건강검진항목별 결과 등록
+	 * @param testItemResult 건강검진항목별 결과
+	 * @return 등록행수
+	 * @throws Exception
+	 */
+	public int createTestItemResult(TestItemResult testItemResult) throws Exception
+	{		
+		if(testItemResult.getHeaResultTypeCd().equals(ConstVal.CODE_MASTER_HEA_RESULT_TYPE_NUNBER))
+		{
+			testItemResult.setNumResult(Float.parseFloat(testItemResult.getCharResult()));
+		}
+		
+		return this.checkupResultMapper.createTestItemResult(testItemResult);
+	}
+	
+	/**
+	 * 건강검진항목별 결과 삭제
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param userId 사용자아이디
+	 * @param heaCheckupOrgTestItemNo 기관별검사항목번호
+	 * @return 삭제행수
+	 * @throws Exception
+	 */
+	public int deleteTestItemResult(int heaCheckupPlanNo, String userId, int heaCheckupOrgTestItemNo) throws Exception
+	{
+		return this.checkupResultMapper.deleteTestItemResult(heaCheckupPlanNo, userId, heaCheckupOrgTestItemNo);
+	}
+	
+	/**
+	 * 건강검진항목별 결과 삭제
+	 * @param testItemResults 삭제목록
+	 * @return 삭제행수
+	 * @throws Exception
+	 */
+	@Transactional
+	public int deleteTestItemResults(@RequestBody List<TestItemResult> testItemResults) throws Exception
+	{
+		int count = 0;
+		for (TestItemResult testItemResult : testItemResults)
+		{
+			count += this.checkupResultMapper.deleteTestItemResult(
+					testItemResult.getHeaCheckupPlanNo(), 
+					testItemResult.getUserId(), 
+					testItemResult.getHeaCheckupOrgTestItemNo());
+		}
+		
+		return count;
+	}
+		
+	/**
+	 * 건강검진결과 엑셀업로드
+	 * @param heaCheckupPlanNo 건강검진계획번호
+	 * @param file 업로드엑셀파일
+	 * @return 업로드결과
+	 * @throws Exception
+	 */
+	public Map<String, Object> uploadExcelCheckupResult(int heaCheckupPlanNo, MultipartFile file) throws Exception
+	{		
+		Map<String, Object> map =new HashMap<String, Object>();
+		map.put("success", false);
+		map.put("message", "");
+		map.put("uploadResult", null);
+		map.put("errorInfo", null);
+		
+		int checkupResultTotalCount = 0;
+		int checkupResultSuccessCount = 0;
+		int checkupResultFailCount = 0;
+		
+		int testItemResultTotalCount = 0;
+		int testItemResultSuccessCount = 0;
+		int testItemResultFailCount = 0;
+		
+		int checkupResultDiagTotalCount = 0;
+		int checkupResultDiagSuccessCount = 0;
+		int checkupResultDiagFailCount = 0; 
+		
+		// 여기서 업로드된 엑셀을 처리함
+		// 테스트 "C:\Projects\SHE\excel_upload.xlsx"
+    	String fileName =  new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + "_" + file.getOriginalFilename();
+    	String filePath = ConstVal.FILE_PATH_TEMP + "\\" + fileName;
+    	byte fileData[] = file.getBytes();
+    	FileOutputStream fos = null;
+    	try
+    	{
+    		fos = new FileOutputStream(filePath);
+    		fos.write(fileData);
+    	}
+    	catch(Exception e)
+    	{    		
+    	}
+    	finally
+    	{
+    		if(fos != null) fos.close();
+    	}
+    	
+    	File excel = new File(filePath);		
+	    ExcelReader reader = new ExcelReader();	    
+	    List<String[][]> sheets = reader.read(excel);
+		if(sheets != null) 
+		{
+			if(sheets.size() == 3)
+			{				
+				String checkupResultSheetName = "검진결과";
+				String testItemResultSheetName = "검사항목 검사결과";
+				String checkupResultDiagSheetName = "검진결과 진단";
+				
+				String[][] checkupResultSheet = sheets.get(0);
+				String[][] testItemResultSheet = sheets.get(1);
+				String[][] checkupResultDiagSheet = sheets.get(2);
+				
+				String[] checkupResultSheetHeader = new String[] { "사용자 ID", "검진 받은 기관", "건강검진일", "종합의견" };
+				String[] testItemResultSheetHeader = new String[] { "사용자 ID", "검진 받은 기관", "검사 항목", "결과값" };
+				String[] checkupResultDiagSheetHeader = new String[] { "사용자 ID", "질환 분류", "질환", "검사결과 진단" };
+				
+				// 헤더 양식확인
+				if(checkupResultSheet.length>0 && !this.uploadExcelHeaderCheck(checkupResultSheet[0], checkupResultSheetHeader))
+				{
+					map.put("message", "업로드양식이 오류: " + checkupResultSheetName + " 시트의 헤더가 다릅니다.");
+				}
+				else if(testItemResultSheet.length>0 && !this.uploadExcelHeaderCheck(testItemResultSheet[0], testItemResultSheetHeader))
+				{
+					map.put("message", "업로드양식이 오류: " + testItemResultSheetName + " 시트의 헤더가 다릅니다.");
+				}
+				else if(checkupResultDiagSheet.length>0 && !this.uploadExcelHeaderCheck(checkupResultDiagSheet[0], checkupResultDiagSheetHeader))
+				{
+					map.put("message", "업로드양식이 오류: " + checkupResultDiagSheetName + " 시트의 헤더가 다릅니다.");
+				}
+				else
+				{
+					// 업로드양식 통과 후 데이터검사
+					// 1. 건강검진계획 정보 조회
+					CheckupPlan checkpPlan = this.checkupPlanService.getCheckupPlan(heaCheckupPlanNo);
+					
+					// 2. 검진대상자 체크를 위해 대상자 조회
+					List<CheckupUser> checkupUsers = this.checkupPlanService.getCheckupUsers(checkpPlan.getHeaCheckupPlanNo(), 0, null, null, null, null, null, null, null, null, null, null);
+					
+					// 3. 검진대상기관(검진기관) 체크를 위해 검진대상기관 조회
+					List<CheckupPlanOrg> checkupPlanOrgs = this.checkupPlanService.getCheckupPlanOrgs(heaCheckupPlanNo, "");
+					
+					// 4. 질환분류별 질환 조회				
+					List<CodeMaster> diseaseClasses = this.codeMasterService.getSelect(ConstVal.CODE_GROUP_HEA_DISEASE_CLASS_CD);
+					Map<String, List<Disease>> diseaseMap = new HashMap<String, List<Disease>>();
+					for (CodeMaster diseaseClass : diseaseClasses)
+					{
+						List<Disease> diseases = this.DiseaseService.getDiseases(diseaseClass.getCode(), "");
+						diseaseMap.put(diseaseClass.getCode(), diseases);
+					}
+					
+					// 5. 결과진단(판정) 조회
+					List<CodeMaster> diagnoses = this.codeMasterService.getSelect(ConstVal.CODE_GROUP_HEA_DIAGNOSE_CD);
+					
+					List<Map<String, Object>> uploadResults = new ArrayList<Map<String, Object>>();
+					List<Map<String, Object>> errorInfos = new ArrayList<Map<String, Object>>();
+					
+					Map<String, Object> checkupResultMap = new HashMap<String, Object>();
+					Map<String, Object> testItemResultMap = new HashMap<String, Object>();
+					Map<String, Object> checkupResultDiagMap = new HashMap<String, Object>();
+					
+					// 검진결과
+					for(int row=1;row<checkupResultSheet.length;row++)						
+					{						
+						String userId = checkupResultSheet[row][0].trim();
+						String heaCheckedOrgNm = checkupResultSheet[row][1].trim();
+						String heaCheckedYmd = checkupResultSheet[row][2].trim();
+						String overallOpinion = checkupResultSheet[row][3].trim();
+						
+						int count = 0;
+						String failMessage = "";
+						boolean checkUser = checkupUsers.stream().filter(o -> o.getUserId().equals(userId)).findFirst().isPresent();
+						boolean checkOrg = checkupPlanOrgs.stream().filter(o -> o.getHeaCheckupOrgNm().equals(heaCheckedOrgNm)).findFirst().isPresent();
+						boolean checkDate = this.isValidDate(heaCheckedYmd);
+						
+						checkupResultTotalCount++;
+						if(checkUser && checkOrg && checkDate)
+						{
+							CheckupPlanOrg org =checkupPlanOrgs.stream().filter(o -> o.getHeaCheckupOrgNm().equals(heaCheckedOrgNm)).findFirst().get();
+							
+							CheckupResult checkupResult = new CheckupResult();
+							checkupResult.setUpdateUserId("dev");
+							checkupResult.setHeaCheckupPlanNo(heaCheckupPlanNo);
+							checkupResult.setUserId(userId);
+							checkupResult.setHeaCheckedOrgNo(org.getHeaCheckupOrgNo());
+							checkupResult.setHeaCheckedOrgNm(heaCheckedOrgNm);
+							checkupResult.setHeaCheckedYmd(heaCheckedYmd);
+							checkupResult.setOverallOpinion(overallOpinion);
+							
+							count = this.checkupResultUploadMapper.uploadExcelCheckupResult(checkupResult);
+							if(count == 0)
+							{
+								failMessage = "업로드 중 오류가 발생했습니다. 관리자에게 문의하세요.";
+							}
+							checkupResultSuccessCount += count;
+						}						
+						if(count == 0)
+						{
+							if(!checkUser) failMessage = this.appendString(failMessage, "건강검진 대상자로 지정되지 않은 임직원 입니다.");
+							if(!checkOrg) failMessage = this.appendString(failMessage, "건강검진 수행기관이 아니거나 시스템에 등록된 건강검진 기관이 없습니다.");
+							if(!checkDate) failMessage = this.appendString(failMessage, "건강검진일의 형식이 잘못 됐습니다.(ex: 2019-01-01)");
+							
+							checkupResultFailCount++;
+							Map<String, Object> errorInfo = new HashMap<String, Object>();
+							errorInfo.put("classNm", checkupResultSheetName);
+							errorInfo.put("failRow", row);
+							errorInfo.put("failMessage", failMessage);
+							errorInfo.put("remark", "");
+							
+							errorInfos.add(errorInfo);
+						}
+					}
+					checkupResultMap.put("classNm", checkupResultSheetName);
+					checkupResultMap.put("totalCount", checkupResultTotalCount);
+					checkupResultMap.put("successCount", checkupResultSuccessCount);
+					checkupResultMap.put("failCount", checkupResultFailCount);
+					
+					// 검사항목 검사결과
+					for(int row=1;row<testItemResultSheet.length;row++)						
+					{
+						String userId = testItemResultSheet[row][0].trim();
+						String heaCheckupOrgNm = testItemResultSheet[row][1].trim();
+						String heaTestItemCd = "";
+						String heaTestItemNm = testItemResultSheet[row][2].trim();
+						String charResult = testItemResultSheet[row][3].trim();
+						float numResult = 0.0f;
+						
+						int count = 0;
+						String failMessage = "";
+						boolean checkUser = checkupUsers.stream().filter(o -> o.getUserId().equals(userId)).findFirst().isPresent();
+						boolean checkOrg = checkupPlanOrgs.stream().filter(o -> o.getHeaCheckupOrgNm().equals(heaCheckupOrgNm)).findFirst().isPresent();
+						boolean checkItem = true;
+						boolean checkType = true;
+						if(checkUser)
+						{
+							CheckupUser checkupUser = checkupUsers.stream().filter(o -> o.getUserId().equals(userId)).findFirst().get();
+							List<TestItemResult> userItems = this.checkupResultMapper.getTestItemResults(checkpPlan.getHeaCheckupPlanNo(), checkupUser.getUserId(), "");
+							checkItem = userItems.stream().filter(o -> o.getHeaTestItemNm().equals(heaTestItemNm)).findFirst().isPresent();
+							if(checkItem)
+							{
+								TestItemResult item = userItems.stream().filter(o -> o.getHeaTestItemNm().equals(heaTestItemNm)).findFirst().get();
+								heaTestItemCd = item.getHeaTestItemCd();
+								if(item.getHeaResultTypeCd().equals(ConstVal.CODE_MASTER_HEA_RESULT_TYPE_NUNBER))
+								{
+									checkType = this.isValidNumber(charResult);
+									if(checkType)
+									{
+										numResult = Float.parseFloat(charResult);
+									}
+								}
+							}
+						}
+						
+						testItemResultTotalCount++;
+						if(checkUser && checkOrg && checkItem && checkType)
+						{
+							CheckupPlanOrg org = checkupPlanOrgs.stream().filter(o -> o.getHeaCheckupOrgNm().equals(heaCheckupOrgNm)).findFirst().get();
+							
+							TestItemResult testItemResult = new TestItemResult();
+							testItemResult.setCreateUserId("dev");
+							testItemResult.setUpdateUserId("dev");
+							testItemResult.setHeaCheckupPlanNo(heaCheckupPlanNo);
+							testItemResult.setUserId(userId);
+							testItemResult.setHeaCheckupOrgNo(org.getHeaCheckupOrgNo());
+							testItemResult.setHeaCheckupOrgNm(heaCheckupOrgNm);
+							testItemResult.setHeaTestItemCd(heaTestItemCd);
+							testItemResult.setHeaTestItemNm(heaTestItemNm);
+							testItemResult.setCharResult(charResult);
+							testItemResult.setNumResult(numResult);
+							
+							count = this.checkupResultUploadMapper.uploadExcelTestItemResult(testItemResult);
+							if(count == 0)
+							{
+								failMessage = "업로드 중 오류가 발생했습니다. 관리자에게 문의하세요.";
+							}
+							testItemResultSuccessCount += count;
+						}
+						if(count == 0)
+						{
+							if(!checkUser) failMessage = this.appendString(failMessage, "건강검진 대상자로 지정되지 않은 임직원 입니다.");
+							if(!checkOrg) failMessage = this.appendString(failMessage, "건강검진 수행기관이 아니거나 시스템에 등록된 건강검진 기관이 없습니다.");
+							if(!checkItem) failMessage = this.appendString(failMessage, "해당년도 건강검진 수행기간별 검사항목이 등록되지 않았습니다.");
+							if(!checkType) failMessage = this.appendString(failMessage, "검사항목별 결과타입이 다르거나 결과값이 없습니다.");
+							
+							testItemResultFailCount++;
+							Map<String, Object> errorInfo = new HashMap<String, Object>();
+							errorInfo.put("classNm", testItemResultSheetName);
+							errorInfo.put("failRow", row);
+							errorInfo.put("failMessage", failMessage);
+							errorInfo.put("remark", "");
+							
+							errorInfos.add(errorInfo);
+						}					
+					}
+					testItemResultMap.put("classNm", testItemResultSheetName);
+					testItemResultMap.put("totalCount", testItemResultTotalCount);
+					testItemResultMap.put("successCount", testItemResultSuccessCount);
+					testItemResultMap.put("failCount", testItemResultFailCount);
+					
+					// 검진결과 진단
+					for(int row=1;row<checkupResultDiagSheet.length;row++)						
+					{
+						String userId = checkupResultDiagSheet[row][0].trim();
+						String heaDiseaseClassNm = checkupResultDiagSheet[row][1].trim();
+						String heaDiseaseCd = "";
+						String heaDiseaseNm = checkupResultDiagSheet[row][2].trim();
+						String heaDiagnoseNm = checkupResultDiagSheet[row][3].trim();
+									
+						int count = 0;
+						String failMessage = "";
+						boolean checkUser = checkupUsers.stream().filter(o -> o.getUserId().equals(userId)).findFirst().isPresent();
+						boolean checkDiseType = diseaseClasses.stream().filter(o -> o.getCodeNm().equals(heaDiseaseClassNm)).findFirst().isPresent();
+						boolean checkDise = true;
+						if(checkDiseType) 
+						{
+							CodeMaster diseType = diseaseClasses.stream().filter(o -> o.getCodeNm().equals(heaDiseaseClassNm)).findFirst().get();
+							List<Disease> dises = (List<Disease>)diseaseMap.get(diseType.getCode());
+							checkDise = dises.stream().filter(o -> o.getHeaDiseaseNm().equals(heaDiseaseNm)).findFirst().isPresent();							
+							heaDiseaseCd = dises.stream().filter(o -> o.getHeaDiseaseNm().equals(heaDiseaseNm)).findFirst().get().getHeaDiseaseCd();
+						}
+						boolean checkDiag = diagnoses.stream().filter(o -> o.getCodeNm().equals(heaDiagnoseNm)).findFirst().isPresent();
+						
+						checkupResultDiagTotalCount++;
+						if(checkUser && checkDiseType && checkDise && checkDiag)
+						{
+							CodeMaster diag = diagnoses.stream().filter(o -> o.getCodeNm().equals(heaDiagnoseNm)).findFirst().get();
+							
+							CheckupResultDiag checkupResultDiag = new CheckupResultDiag();
+							checkupResultDiag.setCreateUserId("dev");
+							checkupResultDiag.setUpdateUserId("dev");
+							checkupResultDiag.setHeaCheckupPlanNo(heaCheckupPlanNo);
+							checkupResultDiag.setUserId(userId);
+							checkupResultDiag.setHeaDiseaseClassNm(heaDiseaseClassNm);
+							checkupResultDiag.setHeaDiseaseCd(heaDiseaseCd);
+							checkupResultDiag.setHeaDiseaseNm(heaDiseaseNm);
+							checkupResultDiag.setHeaDiagnoseCd(diag.getCode());
+							checkupResultDiag.setHeaDiagnoseNm(heaDiagnoseNm);
+							
+							count = this.checkupResultUploadMapper.uploadExcelCheckupResultDiag(checkupResultDiag);
+							if(count == 0)
+							{
+								failMessage = "업로드 중 오류가 발생했습니다. 관리자에게 문의하세요.";
+							}
+							checkupResultDiagSuccessCount += count;
+						}
+						if(count == 0)
+						{							
+							if(!checkUser) failMessage = this.appendString(failMessage, "건강검진 대상자로 지정되지 않은 임직원 입니다.");
+							if(!checkDiseType) failMessage = this.appendString(failMessage, "등록된 질환분류가 없습니다.");
+							if(!checkDise) failMessage = this.appendString(failMessage, "질환분류에 해당하는 질환이 없습니다.");
+							if(!checkDiag) failMessage = this.appendString(failMessage, "등록된 검사결과 진단이 없습니다.");
+							
+							checkupResultDiagFailCount++;
+							Map<String, Object> errorInfo = new HashMap<String, Object>();
+							errorInfo.put("classNm", checkupResultDiagSheetName);
+							errorInfo.put("failRow", row);
+							errorInfo.put("failMessage", failMessage);
+							errorInfo.put("remark", "");
+							
+							errorInfos.add(errorInfo);
+						}					
+					}
+					checkupResultDiagMap.put("classNm", checkupResultDiagSheetName);
+					checkupResultDiagMap.put("totalCount", checkupResultDiagTotalCount);
+					checkupResultDiagMap.put("successCount", checkupResultDiagSuccessCount);
+					checkupResultDiagMap.put("failCount", checkupResultDiagFailCount);
+					
+					// 업로드결과 
+					uploadResults.add(checkupResultMap);
+					uploadResults.add(testItemResultMap);
+					uploadResults.add(checkupResultDiagMap);
+					
+					map.put("success", true);
+					map.put("uploadResult", uploadResults);
+					map.put("errorInfo", errorInfos);
+				}
+			}
+			else
+			{
+				map.put("message", "업로드양식이 오류: 업로드 시트 갯수가 다릅니다.");
+			}
+		}
+		else 
+		{
+			map.put("message", "업로드 오류: 파일을 읽을 수 없습니다.");
+		}
+		
+		return map;
+	}
+	
+	/**
+	 * 날짜형식 확인
+	 * @param dateString 확인문자
+	 * @return 날짜형식여부
+	 */
+	private boolean isValidDate(String dateString)
+	{
+		try
+		{
+			SimpleDateFormat format = new SimpleDateFormat("yyyyy-MM-dd"); 
+			format.setLenient(false);
+			format.parse(dateString);
+			
+			return true;
+		}
+		catch (ParseException e) 
+		{
+			return false;
+		}
+	}
+	
+	/**
+	 * 수치형식 확인
+	 * @param numberString 확인문자
+	 * @return 수치형식여부
+	 */
+	private boolean isValidNumber(String numberString)
+	{
+		try
+		{
+			float f = Float.parseFloat(numberString);
+			return true;
+		}
+		catch (Exception e)
+		{
+			return false;
+		}
+	}
+	
+	/**
+	 * 문자열더하기(\r\n추가 후)
+	 * @param source 원문자열
+	 * @param append 추가문자열
+	 * @return 반환문자
+	 */
+	private String appendString(String source, String append)
+	{
+		if(source!=null && !source.equals(""))
+		{
+			source += "<br/>■" + append;
+		}
+		else
+		{
+			source = "■" + append;
+		}
+		
+		return source;
+	}
+	
+	/**
+	 * 엑셀헤더양식 확인
+	 * @param sheetHeaderNames 시트헤더배열
+	 * @param headerNames 헤더명
+	 * @return 결과
+	 * @throws Exception
+	 */
+	private boolean uploadExcelHeaderCheck(String[] sheetHeaderNames, String[] headerNames) throws Exception
+	{
+		boolean success = true;
+		for(int i=0; i<headerNames.length; i++)
+		{
+			if(! headerNames[i].equals(sheetHeaderNames[i])) 
+			{
+				success = false;
+				break;
+			}
+		}
+		
+		return success;
+	}
+	
+}

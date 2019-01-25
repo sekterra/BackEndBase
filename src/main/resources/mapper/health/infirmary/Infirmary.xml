@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.infirmary.mapper.InfirmaryMapper">
+
+	<!-- 방문이력 조회 -->
+	<select id="getInfirmaryUsageHistorys" parameterType="map" resultType="com.she.health.model.InfirmaryUsage">
+		select
+			hiu.hea_infirmary_usage_no		-- 건강관리실 이용 번호
+			,hiu.user_id					-- 사용자 id
+			,u.user_nm						-- 사용자 이름
+			,hiu.dept_cd					-- 부서코드
+			,d.dept_nm						-- 부서 이름
+			,hiu.visit_ymd					-- 방문일
+			,hiu.hea_treat_cd				-- 건강관리실 업무 코드(구 활동내용)
+			,c.code_nm as hea_treat_nm		-- 건강관리실 업무명
+			,hiu.symptom					-- 주호소 또는 증상
+			,hiu.consult					-- 간호 및 상담내용
+			,hiu.remark						-- 특이사항(비고)
+			,hiu.create_user_id				-- 생성자
+			,hiu.create_dt					-- 생성일
+			,hiu.update_user_id				-- 수정자
+			,hiu.update_dt					-- 수정일
+		from hea_infirmary_usage hiu		-- 건강관리실 이용(현황) 테이블
+		left outer join com_user u on hiu.user_id=u.user_id
+		left outer join com_dept d on hiu.dept_cd=d.dept_cd
+		left outer join com_code_master c on c.code_group_cd = 'HEA_TREAT' and hiu.hea_treat_cd = c.code
+		where 1=1
+		<if test="deptCd != null and deptCd != ''">
+		and hiu.dept_cd = #{deptCd}
+		</if>
+		<if test="userNm != null and userNm != ''">
+		and u.user_nm like '%'+#{userNm}+'%'
+		</if>
+		<if test="(startDt != null and startDt != '') or (endDt != null and endDt != '')">
+		and hiu.visit_ymd between convert(varchar(10),#{startDt}, 23) and convert(varchar(10),#{endDt}, 23)
+		</if>
+		order by hiu.visit_ymd desc
+	</select>
+	
+	<!-- 처방이력 조회 -->
+	<select id="getPrescribeHistorys" parameterType="map" resultType="com.she.health.model.Prescribe">
+		select
+			hp.hea_infirmary_usage_no	-- 건강관리실이용 번호
+			,u.user_id					-- 사용자 id
+			,u.user_nm					-- 사용자 이름
+			,d.dept_nm					-- 부서 이름
+			,hiu. visit_ymd				-- 방문일
+			,hp. hea_drug_no 			-- 의약품 번호
+			,hd. hea_drug_nm			-- 의약품 명칭
+			,hd. unit					-- (측정)단위
+			,hp. amount					-- 사용량
+			,hp.create_user_id			-- 생성자
+			,hp.create_dt				-- 생성일
+		from hea_prescribe hp												-- 의약품 처방 테이블
+		inner join hea_infirmary_usage hiu on hiu.hea_infirmary_usage_no = hp. hea_infirmary_usage_no	-- 건강관리실 이용(현황) 테이블
+		left outer join hea_drug hd on hd. hea_drug_no = hp. hea_drug_no	-- 의약품 테이블
+		left outer join com_user u on hiu.user_id=u.user_id					-- 사용자 테이블
+		left outer join com_dept d on hiu.dept_cd=d.dept_cd					-- 부서 테이블
+		where 1=1
+		<if test="deptCd != null and deptCd != ''">
+		and hiu.dept_cd = #{deptCd}
+		</if>
+		<if test="userNm != null and userNm != ''">
+		and u.user_nm like '%'+#{userNm}+'%'
+		</if>
+		order by hiu. visit_ymd
+	</select>
+	
+	<!-- 건강검진이력 조회 -->
+	<select id="getCheckupHistorys" parameterType="map" resultType="com.she.health.model.CheckupResult">
+		select d.dept_nm								-- 부서 이름
+			,u.user_id								-- 사용자 id
+			,u.user_nm								-- 사용자 이름
+			,hcp.hea_checkup_class_cd				-- 건강검진 분류 코드
+			,ccm.code_nm as hea_checkup_class_nm	-- 건강검진 분류
+			,hcr.hea_checkup_plan_no				-- 건강검진 계획 번호
+			,hcp.hea_checkup_plan_nm				-- 건강검진 계획 명칭
+			,hcr.hea_checked_ymd					-- 검진일
+			,hcr.hea_checked_org_no					-- 검진 받은 기관 번호
+			,hco.hea_checkup_org_nm					-- 기관 명칭
+			,hcr.hea_follow_up_cd					-- 일반판정
+			,hcr.hea_follow_up_remark				-- 일반판정
+			,hcr.hea_workable_gen_cd				-- 일반판정
+			,hcr.overall_opinion_gen				-- 종합의견(일반)
+			,hcr.hea_workable_cd					-- 종합판정
+			,hcr.overall_opinion					-- 종합의견
+		from hea_checkup_result hcr											-- 건강 검강 검진 계획 대상자-검진결과 테이블
+		left outer join hea_checkup_org hco on hco.hea_checkup_org_no = hcr.hea_checkup_org_no -- 건강검진 기관
+		left outer join com_user u on hcr.user_id=u.user_id					-- 사용자 테이블
+		left outer join com_dept d on hcr.dept_cd=d.dept_cd					-- 부서 테이블
+		inner join hea_checkup_plan hcp on hcr.hea_checkup_plan_no = hcp.hea_checkup_plan_no	-- 건강검진 계획 테이블
+		inner join com_code_master ccm on hcp.hea_checkup_class_cd = ccm.code and ccm.code_group_cd = 'HEA_CHECKUP_CLASS'
+		where 1=1
+		<if test="deptCd != null and deptCd != ''">
+		and hcr.dept_cd = #{deptCd}
+		</if>
+		<if test="userNm != null and userNm != ''">
+		and u.user_nm like '%'+#{userNm}+'%'
+		</if>
+		<if test="startYmd != null and endYmd != null and !startYmd.equals('') and !endYmd.equals('')">
+		and hcr.hea_checked_ymd between convert(varchar(10),#{startYmd}, 23) and convert(varchar(10),#{endYmd}, 23)
+		</if>
+		<if test="heaCheckupClassCd != null and heaCheckupClassCd != ''">
+		and hcp.hea_checkup_class_cd = #{heaCheckupClassCd}
+		</if>
+		order by hcr.hea_checked_ymd desc
+	</select>
+	
+	<!-- 관리대상 유소견자 조회 -->
+	<select id="getSuspectUsers" resultType="com.she.health.model.Suspect">
+		select
+			s.user_id				-- 사용자id
+			,u.user_nm				-- 사용자명
+			,s.suspect_yn			-- 유소견자 여부
+			,s.be_managed_ymd		-- 지정일
+			,s.not_managed_ymd		-- 해제일
+			,s.remark				-- 비고
+			,s.create_user_id		-- 등록자
+			,s.create_dt			-- 등록일
+			,s.update_user_id		-- 수정자
+			,s.update_dt			-- 수정일
+			,u.dept_cd				-- 부서코드
+			,d.dept_nm				-- 부서명
+		from hea_suspect s
+		left outer join com_user u on s.user_id = u.user_id
+		left outer join com_dept d on u.dept_cd = d.dept_cd
+		where 1=1
+		and s.suspect_yn='Y'
+		order by s.be_managed_ymd desc
+	</select>
+	
+	<!-- 관리대상 유소견자 상세조회 -->
+	<select id="getSuspectUser" resultType="com.she.health.model.Suspect">
+		select
+			s.user_id				-- 사용자id
+			,u.user_nm				-- 사용자명
+			,s.suspect_yn			-- 유소견자 여부
+			,s.be_managed_ymd		-- 지정일
+			,s.not_managed_ymd		-- 해제일
+			,s.remark				-- 비고
+			,s.create_user_id		-- 등록자
+			,s.create_dt			-- 등록일
+			,s.update_user_id		-- 수정자
+			,s.update_dt			--수정일
+		from hea_suspect s
+		left outer join com_user u on s.user_id = u.user_id
+		where s.user_id=#{userId}
+	</select>
+	
+	<!-- 관리대상 유소견자 추가 -->
+	<insert id="createSuspectUser" parameterType="com.she.health.model.Suspect">
+		insert into hea_suspect
+		( 
+			user_id
+			,suspect_yn
+			,be_managed_ymd
+			,remark
+			,create_user_id
+			,create_dt
+		)
+		VALUES
+		( 
+			#{userId}
+			,#{suspectYn}
+			,convert(varchar(10),getdate(), 23)
+			,#{remark}
+			,#{createUserId}
+			,getDate()
+		)
+	</insert>
+	
+	<!-- 관리대상 유소견자 수정 -->
+	<update id="updateSuspectUser" parameterType="com.she.health.model.Suspect">
+		update hea_suspect
+		SET 
+			<choose>
+				<when test='suspectYn.equals("Y")'>
+					suspect_yn = #{suspectYn}
+					,be_managed_ymd = convert(char(10),getdate(), 23)
+					,not_managed_ymd = null
+				</when>
+				<otherwise>
+					suspect_yn = #{suspectYn}
+					,not_managed_ymd = convert(char(10),getdate(), 23)
+				</otherwise>
+			</choose>
+			,remark = #{remark}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+		where user_id = #{userId}
+	</update>
+	
+	<!-- 유소견자 팝업 조회 -->
+	<select id="getSuspectUserPopups" resultType="com.she.health.model.CheckupResult">
+		select distinct
+			STUFF((
+				SELECT ', ' + dis.code_nm
+				FROM hea_checkup_result_diag rd
+				left outer join hea_disease di on rd.hea_disease_cd = di.hea_disease_cd
+				left outer join com_code_master dis on dis.code_group_cd = 'HEA_DISEASE_CLASS' and di.hea_disease_class_cd = dis.code
+				left outer join com_code_master dia on dia.code_group_cd = 'HEA_DIAGNOSE' and rd.hea_diagnose_cd = dia.code
+				where hcr.hea_checkup_plan_no = rd.hea_checkup_plan_no
+				group by dis.code, dis.code_nm
+				for xml path('')
+			), 1, 1, '') AS hea_disease_class_nm
+			,STUFF((
+				SELECT ', ' + di.hea_disease_nm
+				FROM hea_checkup_result_diag rd
+				left outer join hea_disease di on rd.hea_disease_cd = di.hea_disease_cd
+				left outer join com_code_master dis on dis.code_group_cd = 'HEA_DISEASE_CLASS' and di.hea_disease_class_cd = dis.code
+				left outer join com_code_master dia on dia.code_group_cd = 'HEA_DIAGNOSE' and rd.hea_diagnose_cd = dia.code
+				where hcr.hea_checkup_plan_no = rd.hea_checkup_plan_no
+				group by di.hea_disease_cd, di.hea_disease_nm
+				for xml path('')
+			), 1, 1, '') AS hea_disease_nm
+
+			,STUFF((
+				SELECT ', ' + dia.code_nm
+				FROM hea_checkup_result_diag rd
+				left outer join hea_disease di on rd.hea_disease_cd = di.hea_disease_cd
+				left outer join com_code_master dis on dis.code_group_cd = 'HEA_DISEASE_CLASS' and di.hea_disease_class_cd = dis.code
+				left outer join com_code_master dia on dia.code_group_cd = 'HEA_DIAGNOSE' and rd.hea_diagnose_cd = dia.code
+				where hcr.hea_checkup_plan_no = rd.hea_checkup_plan_no
+				group by dia.code, dia.code_nm
+				for xml path('')
+			), 1, 1, '') AS hea_diagnose_nm
+			
+			,hcp.hea_checkup_plan_no				-- 검진계획번호
+			,hcp.hea_checkup_plan_nm				-- 검진계획
+			,pc.code_nm as hea_checkup_class_nm	-- 검진종류
+			,hcr.user_id						-- 사용자id
+			,u.user_nm							-- 사용자명
+			,hcr.dept_cd						-- 부서코드
+			,d.dept_nm							-- 부서명
+			,case
+			when hs.suspect_yn is null then 'N'
+			else hs.suspect_yn
+			end as suspect_yn					-- 유소견자 여부
+			,hcr.hea_checked_ymd				-- 검진일
+			,hco.hea_checkup_org_nm				-- 검진기관
+		from hea_checkup_result hcr
+		left outer join hea_checkup_plan hcp on hcr.hea_checkup_plan_no = hcp.hea_checkup_plan_no
+		left outer join com_user u on hcr.user_id = u.user_id
+		left outer join com_dept d on hcr.dept_cd = d.dept_cd
+		left outer join hea_checkup_org hco on hcr.hea_checkup_org_no = hco.hea_checkup_org_no
+		left outer join hea_checkup_result_diag rd on hcr.hea_checkup_plan_no = rd.hea_checkup_plan_no
+		left outer join hea_suspect hs on hcr.user_id = hs.user_id
+		left outer join com_code_master pc on pc.code_group_cd = 'HEA_CHECKUP_CLASS' and hcp.hea_checkup_class_cd = pc.code
+		where 1=1
+		<if test="deptCd != null and deptCd != ''">
+		and hcr.dept_cd = #{deptCd}
+		</if>
+		<if test="suspectYn != null and suspectYn != ''">
+		and hs.suspect_yn=#{suspectYn}
+		</if>
+		<if test="userId != null and userId != ''">
+		and hcr.user_id like '%'+#{userId}+'%'
+		</if>
+		<if test="userNm != null and userNm != ''">
+		and u.user_nm like '%'+#{userNm}+'%'
+		</if>
+		order by dept_nm,user_id
+	</select>
+	
+	<!-- 관리대상 유소견자 이력 추가 -->
+	<insert id="createSuspectUserHist" parameterType="com.she.health.model.SuspectHist">
+		insert into hea_suspect_hist
+		( 
+			hea_checkup_plan_no
+			,user_id
+			,changed_dt
+			,suspect_yn
+			,dept_cd
+			,remark
+			,create_user_id
+			,create_dt
+		)
+		VALUES
+		( 
+			#{heaCheckupPlanNo}
+			,#{userId}
+			,getdate()
+			,#{suspectYn}
+			,#{deptCd}
+			,#{remark}
+			,#{createUserId}
+			,getDate()
+		)
+	</insert>
+	
+	<!-- 유소견자 건강상담이력 조회 -->
+	<select id="getConsults" resultType="com.she.health.model.Consult">
+		select c.hea_consult_no		-- 건강상담 번호
+			,c.user_id				-- 사용자id
+			,u.user_nm				-- 사용자명
+			,c.dept_cd				-- 부서 코드
+			,c.visit_ymd			-- 방문일
+			,c.disease_past			-- 과거력
+			,c.disease_curr			-- 현병력
+			,c.symptom				-- 주호소 또는 증상
+			,c.remark				-- 상담내용(비고)
+			,c.counselor			-- 상담자
+			,s.be_managed_ymd		-- 유소견자 지정일
+			,s.not_managed_ymd		-- 유소견자 제외일
+			,c.create_user_id		-- 등록자
+			,c.create_dt			-- 등록일
+			,c.update_user_id		-- 수정자
+			,c.update_dt			-- 수정일
+		from hea_consult c
+		left outer join hea_suspect s on c.user_id = s.user_id
+		left outer join com_user u on c.user_id = u.user_id
+		where 1=1
+		and c.user_id=#{userId}
+		<if test="startYmd != null and endYmd != null and !startYmd.equals('') and !endYmd.equals('')">
+		and c.visit_ymd between convert(varchar(10),#{startYmd}, 23) and convert(varchar(10),#{endYmd}, 23)
+		</if>
+		order by c.hea_consult_no desc
+	</select>
+
+	<!-- 유소견자 건강상담이력 상세 조회 -->
+	<select id="getConsult" parameterType="int" resultType="com.she.health.model.Consult">
+		select 
+			c.hea_consult_no		-- 건강상담 번호
+			,c.user_id				-- 사용자id
+			,u.user_nm				-- 사용자id
+			,c.dept_cd				-- 부서 코드
+			,c.visit_ymd			-- 방문일
+			,c.disease_past			-- 과거력
+			,c.disease_curr			-- 현병력
+			,c.symptom				-- 주호소 또는 증상
+			,c.remark				-- 상담내용(비고)
+			,c.counselor			-- 상담자
+			,s.be_managed_ymd		-- 유소견자 지정일
+			,s.not_managed_ymd		-- 유소견자 제외일
+			,c.create_user_id		-- 등록자
+			,c.create_dt			-- 등록일
+			,c.update_user_id		-- 수정자
+			,c.update_dt			-- 수정일
+			,c.counselor			-- 상담자
+		from hea_consult c
+		left outer join com_user u on c.user_id = u.user_id
+		left outer join hea_suspect s on c.user_id = s.user_id
+		where 1=1
+		and c.hea_consult_no=#{heaConsultNo}
+	</select>
+
+	<!-- 유소견자 건강상담이력 신규 등록 -->
+	<insert id="createConsult" parameterType="com.she.health.model.Consult">
+		<selectKey keyProperty="heaConsultNo" resultType="int" order="BEFORE">
+			select next value for seq_hea_consult
+		</selectKey>
+		insert into hea_consult
+		( 
+			hea_consult_no
+			,user_id
+			,dept_cd
+			,visit_ymd
+			,disease_past
+			,disease_curr
+			,symptom
+			,remark
+			,counselor
+			,create_user_id
+			,create_dt
+		)
+		VALUES
+		( 
+			#{heaConsultNo}
+			,#{userId}
+			,#{deptCd}
+			,convert(varchar(10),#{visitYmd}, 23)
+			,#{diseasePast}
+			,#{diseaseCurr}
+			,#{symptom}
+			,#{remark}
+			,#{counselor}
+			,#{createUserId}
+			,getDate()
+		)
+	</insert>
+
+	<!-- 유소견자 건강상담이력 수정 -->
+	<update id="updateConsult" parameterType="com.she.health.model.Consult">
+		update hea_consult
+		SET user_id = #{userId}
+			,dept_cd = #{deptCd}
+			,visit_ymd = convert(varchar(10),#{visitYmd}, 23)
+			,disease_past = #{diseasePast}
+			,disease_curr = #{diseaseCurr}
+			,symptom = #{symptom}
+			,remark = #{remark}
+			,counselor = #{counselor}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+		where hea_consult_no = #{heaConsultNo}
+	</update>
+	
+	<!-- 선택된 유소견자 건강상담 이력 삭제 -->
+	<delete id="deleteConsult">
+		delete from hea_consult
+		where hea_consult_no = #{heaConsultNo}
+	</delete>
+	
+	<!-- 건강관리실 일반업무 등록 -->
+	<insert id="createInfirmaryUsage" parameterType="com.she.health.model.InfirmaryUsage">
+		<selectKey keyProperty="heaInfirmaryUsageNo" resultType="int" order="BEFORE">
+			select next value for seq_hea_infirmary_usage
+		</selectKey>
+		insert into hea_infirmary_usage
+		( 	
+			hea_infirmary_usage_no
+			,user_id
+			,dept_cd
+			,visit_ymd
+			,hea_treat_cd
+			,symptom
+			,consult
+			,remark
+			,create_user_id
+			,create_dt 
+		)
+		VALUES
+		( 
+			#{heaInfirmaryUsageNo}
+			,#{userId}
+			,#{deptCd}
+			,#{visitYmd}
+			,#{heaTreatCd}
+			,#{symptom}
+			,#{consult}
+			,#{remark}
+			,#{createUserId}
+			,getDate()
+		)
+	</insert>
+	
+	<!-- 건강관리실 일반업무 수정 -->
+	<update id="updateInfirmaryUsage" parameterType="com.she.health.model.InfirmaryUsage">
+		UPDATE hea_infirmary_usage
+		SET user_id = #{userId}
+			,dept_cd = #{deptCd}
+			,visit_ymd = convert(varchar(10),#{visitYmd}, 23)
+			,hea_treat_cd = #{heaTreatCd}
+			,symptom = #{symptom}
+			,consult = #{consult}
+			,remark = #{remark}
+			,update_user_id = #{updateUserId}
+			,update_dt = getDate()
+		where hea_infirmary_usage_no = #{heaInfirmaryUsageNo}
+	</update>
+	
+	<!-- 건강관리실 일반업무 상세조회 -->
+	<select id="getHeaInfirmaryUsage" parameterType="int" resultType="com.she.health.model.InfirmaryUsage">
+		select
+			hiu.hea_infirmary_usage_no
+			,hiu.user_id
+			,u.user_nm
+			,hiu.dept_cd
+			,hiu.visit_ymd
+			,hiu.hea_treat_cd
+			,hiu.symptom
+			,hiu.consult
+			,hiu.remark
+			,hiu.create_user_id
+			,hiu.create_dt
+			,hiu.update_user_id
+			,hiu.update_dt
+		from hea_infirmary_usage hiu
+		left outer join com_user u on hiu.user_id = u.user_id
+		where 1=1
+		and hiu.hea_infirmary_usage_no = #{heaInfirmaryUsageNo}
+	</select>
+	
+	<!-- 선택된 건강관리실 이용 삭제 -->
+	<delete id="deleteInfirmaryUsage">
+		delete from hea_infirmary_usage 
+		where hea_infirmary_usage_no = #{heaInfirmaryUsageNo}
+	</delete>
+	
+</mapper>

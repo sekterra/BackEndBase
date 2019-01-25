@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.workingEnvManage.mapper.HazardMapper">
+	<select id="getHazards" resultType="com.she.health.model.Hazard">
+		select row_number() over (order by convert(int, hh.hea_hazard_cd)) as rownum
+			, hh.hea_hazard_cd -- 유해인자 코드
+			, hh.hea_hazard_class_cd -- 유해인자 분류 코드
+			, ccm.code_nm as hea_hazard_class_nm -- 유해인자 분류
+			, hh.hea_hazard_nm_ko -- 유해인자 명칭 한글
+			, hh.hea_hazard_nm_en -- 유해인자 명칭 영문
+			, hh.special_yn -- 특수 검진 관련 여부
+			, hh.work_env_yn -- 작업 환경 관련 여부
+			, hh.noti_no -- 고시 번호
+			, hh.hea_checkup_cycle_cd -- 건강검진 주기 코드
+			, hh.hea_checkup_first_cd -- 배치 후 첫 건강검진 시기 코드
+			, hh.amount -- 수량
+			, hh.use_yn -- 사용 여부
+			, hh.create_user_id
+			, hh.create_dt
+			, hh.update_user_id
+			, hh.update_dt
+		from hea_hazard hh
+		inner join com_code_master ccm on hh.hea_hazard_class_cd = ccm.code and ccm.code_group_cd = 'HEA_HAZARD_CLASS'
+		where 1=1
+		<if test="heaHazardClassCd != null and heaHazardClassCd != ''">
+		and hea_hazard_class_cd = #{heaHazardClassCd}
+		</if>
+		<if test="heaHazardNmKo != null and heaHazardNmKo != ''">
+		and hea_hazard_nm_ko like '%' + #{heaHazardNmKo} + '%'
+		</if>
+		<if test="specialYn != null and specialYn != ''">
+		and special_yn = #{specialYn}
+		</if>
+		<if test="workEnvYn != null and workEnvYn != ''">
+		and work_env_yn = #{workEnvYn}
+		</if>
+		order by convert(int, hh.hea_hazard_cd) desc
+	</select>
+	
+	<select id="getHazard" resultType="com.she.health.model.Hazard">
+		select hh.hea_hazard_cd -- 유해인자 코드
+			, hh.hea_hazard_class_cd -- 유해인자 분류 코드
+			, ccm.code_nm as hea_hazard_class_nm -- 유해인자 분류
+			, hh.hea_hazard_nm_ko -- 유해인자 명칭 한글
+			, hh.hea_hazard_nm_en -- 유해인자 명칭 영문
+			, hh.special_yn -- 특수 검진 관련 여부
+			, hh.work_env_yn -- 작업 환경 관련 여부
+			, hh.noti_no -- 고시 번호
+			, hh.hea_checkup_cycle_cd -- 건강검진 주기 코드
+			, hh.hea_checkup_first_cd -- 배치 후 첫 건강검진 시기 코드
+			, hh.amount -- 수량
+			, hh.use_yn -- 사용 여부
+			, hh.create_user_id
+			, hh.create_dt
+			, hh.update_user_id
+			, hh.update_dt
+			, hh.use_yn -- 사용 여부
+		from hea_hazard hh
+		inner join com_code_master ccm on hh.hea_hazard_class_cd = ccm.code and ccm.code_group_cd = 'HEA_HAZARD_CLASS'
+		where hea_hazard_cd = #{heaHazardCd}
+	</select>
+	
+	<insert id="createHazard" parameterType="com.she.health.model.Hazard">
+		<selectKey keyProperty="heaHazardCd" resultType="String" order="BEFORE">
+    		select replicate('0',5 - len(convert(varchar(5), next value for seq_hea_hazard))) 
+    			+ convert(varchar(5), (select current_value from sys.sequences where lower(name)='seq_hea_hazard')) as hea_hazard_cd
+	  	</selectKey>
+		insert into hea_hazard
+			(hea_hazard_cd
+			, hea_hazard_class_cd
+			, hea_hazard_nm_ko
+			, hea_hazard_nm_en
+			, special_yn
+			, work_env_yn
+			, use_yn
+			, create_user_id
+			, create_dt)
+		values 
+			(#{heaHazardCd}
+			, #{heaHazardClassCd}
+			, #{heaHazardNmKo}
+			<if test="heaHazardNmEn != null">
+			, #{heaHazardNmEn}
+			</if>
+			<if test="specialYn != null">
+			, #{specialYn}
+			</if>
+			<if test="workEnvYn != null">
+			, #{workEnvYn}
+			</if>
+			<if test="useYn != null">
+			, #{useYn}
+			</if>
+			, #{createUserId}
+			, convert(char(10), getDate(), 23)
+			)
+	</insert>
+	
+	<update id="updateHazard" parameterType="com.she.health.model.Hazard">
+		update hea_hazard
+		set hea_hazard_class_cd = #{heaHazardClassCd}
+			, hea_hazard_nm_ko = #{heaHazardNmKo}
+			, hea_hazard_nm_en = #{heaHazardNmEn}
+			, special_yn = #{specialYn}
+			, work_env_yn = #{workEnvYn}
+			, use_yn = #{useYn}
+			, update_user_id = #{updateUserId}
+			, update_dt = convert(char(10), getDate(), 23)
+		where hea_hazard_cd = #{heaHazardCd}
+	</update>
+	
+	<insert id="createProcessHazard" parameterType="com.she.health.model.Hazard">
+		insert into hea_process_hazard
+			(process_no
+			, hea_hazard_cd
+			, create_user_id
+			, create_dt)
+		values 
+			(#{processNo}
+			, #{heaHazardCd}
+			, #{createUserId}
+			, convert(char(10), getDate(), 23)
+			)
+	</insert>
+	
+	<delete id="deleteProcessHazard">
+		delete hea_process_hazard
+		where hea_hazard_cd = #{heaHazardCd}
+	</delete>
+</mapper>

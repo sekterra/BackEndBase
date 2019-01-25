@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.checkup.mapper.CheckupPlanMapper">
+    <select id="getCheckupPlans" resultType="com.she.health.model.CheckupPlan">
+    	select p.hea_checkup_plan_no, p.hea_checkup_plan_nm, p.start_ymd, p.end_ymd, p.finish_ymd
+			, p.start_ymd + '~' + p.end_ymd as hea_checkup_plan_period
+			, p.hea_checkup_class_cd, c.code_nm as hea_checkup_class_nm
+			, p.create_user_id, cu.user_nm as create_user_nm, p.create_dt
+			, p.update_user_id, uu.user_nm as update_user_nm, p.update_dt
+			, (select count(user_id) from hea_checkup_result where p.hea_checkup_plan_no = hea_checkup_plan_no) as checkup_user_count
+			, p.required_opt_yn, p.select_opt_count
+		from hea_checkup_plan p
+		inner join com_code_master c
+		on c.code_group_cd = 'HEA_CHECKUP_CLASS'
+		and p.hea_checkup_class_cd = c.code
+		inner join com_user cu
+		on p.create_user_id = cu.user_id
+		left outer join com_user uu
+		on p.update_user_id = uu.user_id		
+		where 1=1
+		<if test="checkupYear != null and !checkupYear.equals('')">
+		and convert(varchar(4), p.start_ymd) = #{checkupYear}
+		</if>
+		<if test="startYmd != null and endYmd != null and !startYmd.equals('') and !endYmd.equals('')">
+		and (convert(datetime, #{startYmd}) between p.start_ymd and p.end_ymd
+			or convert(datetime, #{endYmd}) between p.start_ymd and p.end_ymd
+		)
+		</if>
+		order by p.start_ymd desc
+    </select>
+    
+    <select id="getCheckupPlan" resultType="com.she.health.model.CheckupPlan">
+    	select p.hea_checkup_plan_no, p.hea_checkup_plan_nm, p.start_ymd, p.end_ymd, p.finish_ymd
+   			, p.start_ymd + '~' + p.end_ymd as hea_checkup_plan_period
+			, p.hea_checkup_class_cd, c.code_nm as hea_checkup_class_nm
+			, p.create_user_id, cu.user_nm as create_user_nm, p.create_dt
+			, p.update_user_id, uu.user_nm as update_user_nm, p.update_dt
+			, (select count(user_id) from hea_checkup_result where p.hea_checkup_plan_no = hea_checkup_plan_no) as checkup_user_count
+			, p.required_opt_yn, p.select_opt_count
+		from hea_checkup_plan p
+		inner join com_code_master c
+		on c.code_group_cd = 'HEA_CHECKUP_CLASS'
+		and p.hea_checkup_class_cd = c.code
+		inner join com_user cu
+		on p.create_user_id = cu.user_id
+		left outer join com_user uu
+		on p.update_user_id = uu.user_id
+		where p.hea_checkup_plan_no = #{heaCheckupPlanNo}
+    </select>
+    
+    <insert id="createCheckupPlan" parameterType="com.she.health.model.CheckupPlan">
+    	<selectKey keyProperty="heaCheckupPlanNo" resultType="int" order="BEFORE">
+	    	select next value for seq_hea_checkup_plan 
+	  	</selectKey>
+    	insert into hea_checkup_plan (
+			hea_checkup_plan_no
+			, hea_checkup_plan_nm
+			, hea_checkup_class_cd
+			, start_ymd
+			, end_ymd
+			, required_opt_yn
+			, select_opt_count
+			, finish_ymd
+			, create_user_id
+			, create_dt
+		)
+		values (
+			#{heaCheckupPlanNo}
+			, #{heaCheckupPlanNm}
+			, #{heaCheckupClassCd}
+			, #{startYmd}
+			, #{endYmd}
+			, #{requiredOptYn}
+			, #{selectOptCount}
+			, convert(varchar(10), #{finishYmd}, 23)
+			, #{createUserId}
+			, getdate()
+		)
+    </insert>
+    
+    <insert id="createCheckupPlanOrg" parameterType="com.she.health.model.CheckupPlanOrg">
+    	insert into hea_checkup_plan_org (
+    		hea_checkup_plan_no
+           ,hea_checkup_org_no
+           ,start_ymd
+           ,end_ymd
+           ,create_user_id
+           ,create_dt
+    	)
+    	values (
+    		#{heaCheckupPlanNo}
+    		,#{heaCheckupOrgNo}
+    		,#{startYmd}
+    		,#{endYmd}
+    		,#{createUserId}
+    		,getdate()
+    	)
+    </insert>
+    
+    <update id="updateCheckupPlan" parameterType="com.she.health.model.CheckupPlan">
+    	update hea_checkup_plan
+		set hea_checkup_plan_nm = #{heaCheckupPlanNm}
+			, hea_checkup_class_cd = #{heaCheckupClassCd}
+			, start_ymd = #{startYmd}
+			, end_ymd = #{endYmd}
+			, finish_ymd = #{finishYmd}
+			, required_opt_yn = #{requiredOptYn}
+			, select_opt_count = #{selectOptCount}
+			, update_user_id = #{updateUserId}
+			, update_dt = getdate()
+		where hea_checkup_plan_no = #{heaCheckupPlanNo}
+    </update>
+    
+    <delete id="deleteCheckupPlan" parameterType="com.she.health.model.CheckupPlan">
+    	delete from hea_checkup_plan
+    	where hea_checkup_plan_no = #{heaCheckupPlanNo}
+    </delete>
+    
+    <delete id="deleteCheckupPlanOrg">
+    	delete from hea_checkup_plan_org
+    	where hea_checkup_plan_no = #{heaCheckupPlanNo}
+    	<if test="heaCheckupOrgNo != null and heaCheckupOrgNo > 0">
+    	and hea_checkup_org_no = #{heaCheckupOrgNo}
+    	</if>
+    </delete>
+    
+    <insert id="createCheckupUser" parameterType="com.she.health.model.CheckupUser">    	
+    	insert into hea_checkup_result (
+			hea_checkup_plan_no
+			, user_id
+			, dept_cd
+			, hea_checkup_type_cd
+			, notify_plan_yn
+			, consent_yn
+			, reserve_batch_yn
+			, notify_result_yn
+			, create_user_id
+			, create_dt
+		)
+		values (			
+			#{heaCheckupPlanNo}
+			, #{userId}
+			, #{deptCd}
+			, #{heaCheckupTypeCd}
+			, 'N'
+			, 'N'
+			, 'N'
+			, 'N'
+			, #{createUserId}
+			, getdate()
+		)
+		
+    </insert>
+    
+    <delete id="deleteCheckupUser" parameterType="com.she.health.model.CheckupUser">
+    	delete hea_checkup_result
+    	where hea_checkup_plan_no = #{heaCheckupPlanNo}
+    	and user_id = #{userId}
+    </delete>
+    
+    <select id="getCheckupPlanOrgs" resultType="com.she.health.model.CheckupPlanOrg">
+    	select hcpo.hea_checkup_plan_no
+			,hcpo.hea_checkup_org_no
+			,hco.hea_checkup_org_nm
+			,hcpo.start_ymd
+			,hcpo.end_ymd
+			,hcpo.weekday_max
+			,hcpo.weekend_max
+			,hcpo.create_user_id
+			,hcpo.create_dt
+			,hcpo.update_user_id
+			,hcpo.update_dt
+			,hcpo.start_ymd + '~' + hcpo.end_ymd as hea_checkup_plan_org_period
+		from hea_checkup_plan_org hcpo
+		inner join hea_checkup_org hco on hcpo.hea_checkup_org_no = hco.hea_checkup_org_no
+		inner join hea_checkup_plan hcp on hcpo.hea_checkup_plan_no = hcp.hea_checkup_plan_no
+		where 1=1
+		<if test="standardYmd != null and !standardYmd.equals('')">
+		and convert(datetime, hcpo.start_ymd) &lt;= convert(datetime, #{standardYmd}) and convert(datetime, hcpo.end_ymd) &gt;= convert(datetime, #{standardYmd})
+		</if>
+		<if test="heaCheckupPlanNo != null and heaCheckupPlanNo > 0">
+		and hcp.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		</if>
+		<if test="heaCheckupOrgNo != null and heaCheckupOrgNo > 0">
+		and hcpo.hea_checkup_org_no = #{heaCheckupOrgNo}
+		</if>
+		and hco.use_yn = 'Y'
+		order by hco.sort_order
+    </select>
+    
+    <update id="updateCheckupPlanOrg" parameterType="com.she.health.model.CheckupPlanOrg">
+	   	update hea_checkup_plan_org
+		set start_ymd = #{startYmd}
+			, end_ymd = #{endYmd}
+			, weekday_max = #{weekdayMax}
+			, weekend_max = #{weekendMax}
+			, update_user_id = #{updateUserId}
+			, update_dt = getdate()
+		where hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and hea_checkup_org_no = #{heaCheckupOrgNo}
+    </update>
+    
+    <select id="getCheckupUsers" resultType="com.she.health.model.CheckupUser">
+	    select p.hea_checkup_plan_no, p.hea_checkup_plan_nm, p.hea_checkup_class_cd, cp.code_nm as hea_checkup_class_nm
+			, r.hea_checkup_type_cd, cr.code_nm as hea_checkup_type_nm
+			, o.hea_checkup_org_no, o.hea_checkup_org_nm
+			, STUFF((
+				SELECT ', ' + p.process_nm
+				FROM com_process p
+				left outer join com_process_user pu
+				on p.process_no = pu.process_no
+				left outer join com_process_dept pd
+				on p.process_no = pd.process_no
+				where pu.user_id = u.user_id
+				or pd.dept_cd = d.dept_cd
+				group by p.process_no, p.process_nm
+				for xml path('')
+			), 1, 1, '') AS process_nm
+			, d.dept_cd, d.dept_nm, u.user_id, u.user_nm, u.entry_ymd, u.phone_no, u.office_tel, u.email
+			, r.notify_plan_yn, r.notify_plan_ymd, r.reserve_ymd, case when isnull(r.reserve_ymd, '') = '' then 'N' else 'Y' end reserve_yn
+			, r.hea_checkup_org_no	-- 예약 건강검진 기관 번호
+    		, o.hea_checkup_org_nm	-- 예약 건강검진 기관명
+    		, r.hea_checked_ymd		-- 건강검진 일자
+    		, r.hea_checked_org_no	-- 건강검진받은 기관 번호
+    		, co.hea_checkup_org_nm	as hea_checked_org_nm	-- 건강검진받은 기관명
+			, case when isnull(r.hea_checked_ymd, '') = '' then 'N' else 'Y' end status_yn	-- 수검여부
+		from hea_checkup_plan p
+		inner join com_code_master cp 
+		on cp.code_group_cd = 'HEA_CHECKUP_CLASS' 
+		and p.hea_checkup_class_cd = cp.code
+		inner join hea_checkup_result r 
+		on p.hea_checkup_plan_no = r.hea_checkup_plan_no
+		inner join com_code_master cr 
+		on cr.code_group_cd = 'HEA_CHECKUP_TYPE' 
+		and r.hea_checkup_type_cd = cr.code
+		inner join com_user u 
+		on r.user_id = u.user_id
+		inner join com_dept d 
+		on u.dept_cd = d.dept_cd
+		left outer join hea_checkup_org o 
+		on r.hea_checkup_org_no = o.hea_checkup_org_no
+		left outer join hea_checkup_org co 
+		on r.hea_checked_org_no = co.hea_checkup_org_no
+		where 1=1
+		<if test="heaCheckupPlanNo != null and heaCheckupPlanNo > 0">
+		and p.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		</if>
+		<if test="processNo != null and processNo > 0">
+		and exists (
+			select 1
+			from com_process_user pu
+			cross join com_process_dept pd
+			where (pu.process_no = #{processNo} or pd.process_no = #{processNo})
+			and (u.user_id = pu.user_id or u.dept_cd = pd.dept_cd)
+		)
+		</if>
+		<if test="deptCd != null and !deptCd.equals('')">
+		and d.dept_cd = #{deptCd}
+		</if>
+		<if test="userId != null and !userId.equals('')">
+		and upper(u.user_id) like '%'+upper(#{userId})+'%'
+		</if>
+		<if test="userNm != null and !userNm.equals('')">
+		and upper(u.user_nm) like '%'+upper(#{userNm})+'%'
+		</if>
+		<if test="notifyPlanYn != null and !notifyPlanYn.equals('')">
+		and r.notify_plan_yn = #{notifyPlanYn}
+		</if>
+		<if test="reserveYn != null and !reserveYn.equals('')">
+		and (case when isnull(r.reserve_ymd, '') = '' then 'N' else 'Y' end) = #{reserveYn}
+		</if>
+		<if test="reserveYmdStart != null and !reserveYmdStart.equals('')">
+		and convert(datetime, r.reserve_ymd) between convert(datetime, #{reserveYmdStart}) and convert(datetime, #{reserveYmdEnd})+0.99999
+		</if>
+		<if test="heaCheckedOrgNos != null and heaCheckedOrgNos.length > 0">
+		and r.hea_checkup_org_no in
+			<foreach collection="heaCheckedOrgNos" item="heaCheckedOrgNo" separator="," open="(" close=")" >
+			#{heaCheckedOrgNo}
+			</foreach>
+		</if>
+		<if test="heaCheckupOrgNos != null and heaCheckupOrgNos.length > 0">
+		and r.hea_checkup_org_no in
+			<foreach collection="heaCheckupOrgNos" item="heaCheckupOrgNo" separator="," open="(" close=")" >
+			#{heaCheckupOrgNo}
+			</foreach>
+		</if>
+		<if test="statusYn != null and !statusYn.equals('')">
+		and (case when isnull(r.hea_checked_ymd, '') = '' then 'N' else 'Y' end) = #{statusYn}
+		</if>
+    </select>
+    
+    <select id="getCheckupUsersNoTarget" resultType="com.she.health.model.CheckupUser">
+	    select p.hea_checkup_plan_no, p.hea_checkup_plan_nm, p.hea_checkup_class_cd, cp.code_nm as hea_checkup_class_nm
+			, cr.code as hea_checkup_type_cd, cr.code_nm as hea_checkup_type_nm
+			, STUFF((
+				SELECT ', ' + p.process_nm
+				FROM com_process p
+				left outer join com_process_user pu
+				on p.process_no = pu.process_no
+				left outer join com_process_dept pd
+				on p.process_no = pd.process_no
+				where pu.user_id = u.user_id
+				or pd.dept_cd = d.dept_cd
+				group by p.process_no, p.process_nm
+				for xml path('')
+			), 1, 1, '') AS process_nm
+			, d.dept_cd, d.dept_nm, u.user_id, u.user_nm, u.entry_ymd, u.phone_no, u.office_tel, u.email
+			, 'N' as notify_plan_yn, null as notify_plan_ymd, null as reserve_ymd, 'N' as reserve_yn
+		from hea_checkup_plan p
+		cross join com_user u
+		inner join com_code_master cp
+		on cp.code_group_cd = 'HEA_CHECKUP_CLASS'
+		and p.hea_checkup_class_cd = cp.code		
+		inner join com_code_master cr
+		on cr.code_group_cd = 'HEA_CHECKUP_TYPE'
+		and (case when p.hea_checkup_class_cd != 'A0' then '01' 
+			when datediff(month, convert(datetime, u.birth_ymd), getdate())/12 &lt;= 30 then 'A'
+			when datediff(month, convert(datetime, u.birth_ymd), getdate())/12 &gt; 30
+				and datediff(month, convert(datetime, u.birth_ymd), getdate())/12 &lt;= 40 then 'B'
+			else 'C' end) = cr.code
+		inner join com_dept d
+		on u.dept_cd = d.dept_cd
+		where 1=1
+		and p.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and not exists (
+			select 1
+			from hea_checkup_result 
+			where hea_checkup_plan_no = p.hea_checkup_plan_no
+			and user_id = u.user_id
+		)
+		-- 특수건강검진의 경우 공정별 유해인자를 확인하여 대상자 조회
+		and (p.hea_checkup_class_cd &lt;&gt; 'B1'
+			or (p.hea_checkup_class_cd = 'B1' 
+				and exists (
+					select 1
+					from hea_hazard hh
+					inner join hea_process_hazard pph
+					on hh.hea_hazard_cd = pph.hea_hazard_cd
+					left outer join com_process_user ppu
+					on pph.process_no = ppu.process_no
+					left outer join com_process_dept ppd
+					on pph.process_no = ppd.process_no
+					where hh.special_yn = 'Y'
+					and (ppu.user_id = u.user_id or ppd.dept_cd = u.dept_cd )
+				) 
+			) 
+		)
+		<if test="processNo != null and processNo > 0">
+		and exists (
+			select 1
+			from com_process_user pu
+			cross join com_process_dept pd
+			where (pu.process_no = #{processNo} or pd.process_no = #{processNo})
+			and (u.user_id = pu.user_id or u.dept_cd = pd.dept_cd)
+		)
+		</if>
+		<if test="deptCd != null and !deptCd.equals('')">
+		and d.dept_cd = #{deptCd}
+		</if>
+		<if test="userId != null and !userId.equals('')">
+		and upper(u.user_id) like '%'+upper(#{userId})+'%'
+		</if>
+		<if test="userNm != null and !userNm.equals('')">
+		and upper(u.user_nm) like '%'+upper(#{userNm})+'%'
+		</if>
+		<if test="age != null and age > 0">
+		and case when #{age} = 5 then case when (datediff(month, convert(datetime, u.birth_ymd), getdate())/12)/10 >= #{age} then 1 else 0 end
+			else case when (datediff(month, convert(datetime, u.birth_ymd), getdate())/12)/10 = #{age} then 1 else 0 end end = 1
+		</if>
+		<if test="prevYearCheckupUserYn != null and !prevYearCheckupUserYn.equals('') and prevYearCheckupUserYn.equals('Y')">
+		and not exists (
+			select 1
+			from hea_checkup_plan pp
+			inner join hea_checkup_result rr
+			on pp.hea_checkup_plan_no = rr.hea_checkup_plan_no
+			where convert(int, convert(varchar(4), pp.start_ymd)) = convert(int, convert(varchar(4), p.start_ymd))-1
+			and rr.user_id = u.user_id
+		)
+		</if>
+    </select>
+    
+    <select id="getCheckupReserves" resultType="com.she.health.model.CheckupUser">
+    	select hcp.hea_checkup_plan_no
+			, hcp.hea_checkup_plan_nm
+			, hcp.hea_checkup_class_cd, c.code_nm as hea_checkup_class_nm
+			, hcp.start_ymd + ' ~ ' + hcp.end_ymd as hea_checkup_plan_period
+			, hcp.start_ymd 
+			, hcp.end_ymd
+			, substring(hcp.start_ymd, 1, 4) as checkup_year
+			, hco.hea_checkup_org_no
+			, hco.hea_checkup_org_nm
+			, hcr.reserve_ymd
+			, hcr.hea_checked_ymd
+			, hcr.user_id
+			, curuser.user_nm
+			, case when isnull(hcr.reserve_ymd, '') = '' then '예약하기' else '예약현황' end reserve_manage
+			, checkuptype.code_nm heaCheckupTypeNm
+			, hcr.hea_checkup_type_cd
+			, isnull(hcr.hea_checked_org_no, 0) as hea_checked_org_no
+			, isnull(hcr.consent_yn, 'N') as consent_yn
+			, required_opt_yn
+			, select_opt_count
+		from hea_checkup_plan hcp
+		inner join com_code_master c
+		on c.code_group_cd = 'HEA_CHECKUP_CLASS'
+		and hcp.hea_checkup_class_cd = c.code
+		left outer join hea_checkup_result hcr 
+		on hcr.hea_checkup_plan_no = hcp.hea_checkup_plan_no
+		inner join com_code_master checkuptype
+		on checkuptype.code_group_cd = 'HEA_CHECKUP_TYPE'
+		and hcr.hea_checkup_type_cd = checkuptype.code
+		left outer join com_user curuser 
+		on hcr.user_id = curuser.user_id
+		left outer join hea_checkup_org hco 
+		on hcr.hea_checkup_org_no = hco.hea_checkup_org_no
+		inner join com_user cu
+		on hcp.create_user_id = cu.user_id
+		left outer join com_user uu
+		on hcp.update_user_id = uu.user_id		
+		where 1=1
+		<if test="heaCheckupPlanNo != null and heaCheckupPlanNo > 0">
+		and hcp.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		</if>
+		<if test="userId != null and !userId.equals('')">
+		and (curuser.user_id = #{userId} or isnull(curuser.user_id, '') = '')
+		</if>
+		order by hcr.user_id, hcp.start_ymd desc
+    </select>
+    
+    <select id="getCheckupPlanOrgTestItems" resultType="com.she.health.model.CheckupOrgTestItem">
+    	select hti.hea_test_item_cd
+			,hti.hea_test_item_nm
+			,hcoti.hea_checkup_org_test_item_no
+		from hea_checkup_result hcr
+		inner join hea_checkup_plan_org hcpo 
+		on hcr.hea_checkup_plan_no = hcpo.hea_checkup_plan_no
+		inner join hea_checkup_plan hcp 
+		on hcpo.hea_checkup_plan_no = hcp.hea_checkup_plan_no
+		inner join hea_checkup_org hco 
+		on hcpo.hea_checkup_org_no = hco.hea_checkup_org_no
+		inner join hea_checkup_org_test_item hcoti 
+		on hcpo.hea_checkup_org_no = hcoti.hea_checkup_org_no 
+		and hcr.hea_checkup_type_cd = hcoti.hea_checkup_type_cd
+		and substring(hcp.start_ymd, 1, 4) = hcoti.year
+		inner join hea_test_item hti 
+		on hcoti.hea_test_item_cd = hti.hea_test_item_cd
+		where 1=1
+		and hcr.user_id = #{userId}			-- 검진결과 테이블의 사용자 id
+		and hcp.hea_checkup_plan_no = #{heaCheckupPlanNo}	-- 건강검진계획 번호
+		<if test="heaCheckupOrgNo != null and heaCheckupOrgNo > 0">
+		and hcpo.hea_checkup_org_no = #{heaCheckupOrgNo}
+		</if>
+		and hcoti.optional_yn = 'Y'			-- 선택항목
+		and hti.use_yn = 'Y'
+		and hco.use_yn = 'Y'
+		order by hco.sort_order, hti.sort_order
+    </select>
+    
+    <select id="getCheckupReserveOrgStatus" resultType="com.she.health.model.CheckupPlanOrg">
+    	select d.ymd as reserve_status_ymd
+			, o.hea_checkup_org_nm
+			, count(r.user_id) as reserve_user_count 
+			, (select isnull(case when datepart(weekday,d.ymd) = '7' then weekend_max else weekday_max end, 0)
+			   from hea_checkup_plan_org 
+			   where hea_checkup_org_no = #{heaCheckupOrgNo} and hea_checkup_plan_no = #{heaCheckupPlanNo}) as integrated_max
+		from com_dummy_date d
+		left outer join hea_checkup_result r
+		on d.ymd = r.reserve_ymd
+		and r.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and r.hea_checkup_org_no = #{heaCheckupOrgNo}
+		left outer join hea_checkup_plan_org hcpo
+		on r.hea_checkup_org_no = hcpo.hea_checkup_org_no
+		and r.hea_checkup_plan_no = hcpo.hea_checkup_plan_no
+		cross join hea_checkup_org o
+		where d.year+'-'+d.month = convert(varchar(7), #{yearMonth})
+		and o.hea_checkup_org_no = #{heaCheckupOrgNo}
+		and datepart(weekday,d.ymd) != 1		-- 일요일 제외
+		group by d.ymd, o.hea_checkup_org_no, o.hea_checkup_org_nm
+		order by d.ymd
+    </select>
+    
+    <update id="updateCheckupReserve" parameterType="com.she.health.model.CheckupUser">
+    	update hea_checkup_result
+    	set dept_cd = #{deptCd}
+    		,reserve_ymd = #{reserveYmd}
+   		<if test="reserveBatchYn != null and !reserveBatchYn.equals('')">
+   			,reserve_batch_yn = #{reserveBatchYn}
+   		</if>    		
+    		,hea_checkup_org_no = #{heaCheckupOrgNo}
+    		,consent_yn = #{consentYn}
+    		,consent_ymd = convert(varchar(10), getDate(), 23)
+    		,update_user_id = #{updateUserId}
+    		,update_dt = getDate()
+    	where hea_checkup_plan_no = #{heaCheckupPlanNo}
+    	and user_id = #{userId}
+    </update>
+    
+    <select id="getCheckupStatuses" resultType="com.she.health.model.CheckupStatus">
+    	select hcr.hea_checkup_plan_no	-- 건강검진 계획 번호
+			, hcp.hea_checkup_plan_nm	-- 건강검진 계획명
+    		, hcr.reserve_ymd			-- 예약일자
+    		, hcr.hea_checkup_org_no	-- 예약 건강검진 기관 번호
+    		, hco.hea_checkup_org_nm	-- 예약 건강검진 기관명
+    		, hcr.hea_checked_ymd		-- 건강검진 일자
+    		, hcr.hea_checked_org_no	-- 건강검진받은 기관 번호
+    		, ho.hea_checkup_org_nm	as hea_checked_org_nm	-- 건강검진받은 기관명
+    		, cu.user_nm				-- 예약자
+    		, (case when hcr.hea_checked_ymd is not null then 'Y'
+					else 'N'
+				end) as checkup_status	-- 수검여부
+    	from hea_checkup_result hcr
+    	left outer join hea_checkup_plan hcp on hcr.hea_checkup_plan_no = hcp.hea_checkup_plan_no
+		left outer join hea_checkup_org hco on hcr.hea_checkup_org_no = hco.hea_checkup_org_no
+		left outer join hea_checkup_org ho on hcr.hea_checked_org_no = ho.hea_checkup_org_no
+    	left outer join com_user cu on hcr.user_id = cu.user_id
+    	where 1=1
+    	<if test="heaCheckupPlanNo != null and heaCheckupPlanNo > 0">
+		and hcr.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		</if>
+    	<if test="heaCheckupOrgNos != null and heaCheckupOrgNos.length > 0">
+		and o.hea_checkup_org_no in
+			<foreach collection="heaCheckupOrgNos" item="heaCheckupOrgNo" separator="," open="(" close=")" >
+			#{heaCheckupOrgNo}
+			</foreach>
+		</if>
+		<if test="checkupStatus != null and checkupStatus != ''">
+		and (case when hcr.hea_checked_ymd is not null then 'Y'
+					else 'N'
+				end) = #{checkupStatus}
+		</if>
+    	order by hcr.reserve_ymd desc
+    </select>
+    
+</mapper>

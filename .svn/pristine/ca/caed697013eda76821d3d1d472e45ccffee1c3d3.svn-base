@@ -1,0 +1,120 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+package com.she.safety.wkod.controller;
+
+import java.util.HashMap;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.she.safety.model.WkodMaster;
+import com.she.safety.model.WkodMasterTabData;
+import com.she.safety.wkod.service.WkodMasterService;
+import com.she.utils.Methods;
+import com.she.utils.RequestMapper;
+
+/**
+ * 작업허가서
+ *
+ */
+@RestController
+public class WkodMasterController 
+{
+	// TODO : queryString 변환을 위한 mapper 선언
+	@Autowired
+	private RequestMapper requestMapper;
+	
+	@Autowired
+	private WkodMasterService wkodMasterService;
+
+	/**
+	 * 작업허가서 조회
+	 * @param parameter (작업기간, 신청부서, 작업종류, 발행부서, 진행단계, 작업NO, 작업명, 조회구분자)
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	@GetMapping("/api/saf/wkod/wkodMasters")
+	public ResponseEntity<List<WkodMaster>> getWkodMasters(@RequestParam HashMap<String, Object> parameter) throws Exception 
+	{
+		HashMap <String, Object> map = this.requestMapper.convertAsParameter(parameter);
+		Methods methods = new Methods();
+		
+		String workYmd = map.containsKey("workYmd")? map.get("workYmd").toString():null;
+		String reqDeptCd = map.containsKey("reqDeptCd")? map.get("reqDeptCd").toString():"";
+		String wkodKindCd = map.containsKey("wkodKindCd")? map.get("wkodKindCd").toString():"";
+		String pubDeptCd = map.containsKey("pubDeptCd")? map.get("pubDeptCd").toString():"";
+		String wkodStepCd = map.containsKey("wkodStepCd")? map.get("wkodStepCd").toString():"";
+		String wkodNum = map.containsKey("wkodNum")? map.get("wkodNum").toString():"";
+		String workTitle = map.containsKey("workTitle")? map.get("workTitle").toString():"";
+		String searchFlag = map.containsKey("searchFlag")? map.get("searchFlag").toString():"";
+		
+		//List<WkodMaster> wkodMaster = null;
+		List<WkodMaster> wkodMaster = wkodMasterService.getWkodMasters(workYmd, reqDeptCd, wkodKindCd, pubDeptCd, wkodStepCd, wkodNum, workTitle, searchFlag);
+		return ResponseEntity.ok().body(wkodMaster);
+	}
+	
+	/**
+	 * 작업허가서 상세 조회
+	 * @param parameter (작업허가서 ID)
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	@GetMapping("/api/saf/wkod/wkodMaster/{wkodNo}")
+	public ResponseEntity<WkodMaster> getWkodMasters(@PathVariable("wkodNo") String wkodNo) throws Exception 
+	{
+		WkodMaster wkodMaster = wkodMasterService.getWkodMaster(wkodNo);
+		
+		if(wkodMaster == null) {
+			wkodMaster = new WkodMaster();
+		}
+		
+		wkodMaster.setWkodSpeCds(wkodMasterService.getSafWkodUseSpe(wkodNo));
+		
+		wkodMaster.setWkodDeptRequest(wkodMasterService.getWkodDepts(wkodNo, "WDT01"));
+		wkodMaster.setWkodDeptWork(wkodMasterService.getWkodDepts(wkodNo, "WDT02"));
+		
+		wkodMaster.setSelectedRequestRow(wkodMasterService.getSelectedWkodDepts(wkodNo, "WDT01"));
+		wkodMaster.setSelectedWorkRow(wkodMasterService.getSelectedWkodDepts(wkodNo, "WDT02"));
+		
+		wkodMaster.setSelectHandleChemContentRow(wkodMasterService.getWkodMatMstsSelectList(wkodNo));
+		
+		return ResponseEntity.ok().body(wkodMaster);
+	}
+	
+	/**
+	 * 작업허가서 상세 조회
+	 * @param parameter (작업허가서 ID)
+	 * @return 작업허가서 목록
+	 * @throws Exception
+	 */
+	@GetMapping("/api/saf/wkod/wkodMasterTabData/{wkodNo}")
+	public ResponseEntity<WkodMasterTabData> getWkodMastersTabData(@PathVariable("wkodNo") String wkodNo) throws Exception 
+	{
+		WkodMasterTabData wkodMasterTabData = new WkodMasterTabData();
+		
+		wkodMasterTabData.setWkodSpeCds(wkodMasterService.getSafWkodUseSpe(wkodNo));
+		
+		wkodMasterTabData.setWkodDeptRequest(wkodMasterService.getWkodDepts(wkodNo, "WDT01"));
+		wkodMasterTabData.setWkodDeptWork(wkodMasterService.getWkodDepts(wkodNo, "WDT02"));
+		
+		wkodMasterTabData.setSelectedRequestRow(wkodMasterService.getSelectedWkodDepts(wkodNo, "WDT01"));
+		wkodMasterTabData.setSelectedWorkRow(wkodMasterService.getSelectedWkodDepts(wkodNo, "WDT02"));
+		
+		wkodMasterTabData.setSelectHandleChemContentRow(wkodMasterService.getWkodMatMstsSelectList(wkodNo));
+		
+		return ResponseEntity.ok().body(wkodMasterTabData);
+	}
+}

@@ -1,0 +1,77 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+package com.she.safety.wkod.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.she.safety.model.WkodMatMst;
+import com.she.safety.wkod.mapper.WkodMatMstMapper;
+
+/**
+ * 건강검진기관 기능정의
+ *
+ */
+@Service
+public class WkodMatMstService 
+{
+	
+	@Autowired
+	private WkodMatMstMapper wkodMatMstMapper;
+	
+	/**
+	 * 취급물질 조회
+	 * @param wkodMatClass 취급물질분류 코드
+	 * @param wkodMatNm 취급물질명
+	 * @return 취급물질 목록
+	 * @throws Exception
+	 */
+	public List<WkodMatMst> getWkodMatMsts(String wkodMatClass, String wkodMatNm) throws Exception 
+	{
+		return wkodMatMstMapper.getWkodMatMsts(wkodMatClass, wkodMatNm);
+	}
+
+	/**
+	 * 취급물질 상세 조회
+	 * @param matMstNo 취급물질 코드
+	 * @return 취급물질
+	 * @throws Exception
+	 */
+	public WkodMatMst getWkodMatMst(String matMstNo) throws Exception 
+	{
+		return wkodMatMstMapper.getWkodMatMst(matMstNo);
+	}
+	
+	/**
+	 * 취급물질 생성
+	 * @param wkodMatMst 취급물질
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	public String createWkodMatMst(WkodMatMst wkodMatMst) throws Exception 
+	{
+		wkodMatMstMapper.createWkodMatMst(wkodMatMst);
+		return wkodMatMst.getMatMstNo();
+	}
+	
+	/**
+	 * 취급물질 수정
+	 * @param wkodMatMst 취급물질
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	public int updateWkodMatMst(WkodMatMst wkodMatMst) throws Exception 
+	{
+		return wkodMatMstMapper.updateWkodMatMst(wkodMatMst);
+	}
+}

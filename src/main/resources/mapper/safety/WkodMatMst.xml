@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.safety.wkod.mapper.WkodMatMstMapper">
+    <select id="getWkodMatMsts" parameterType="HashMap" resultType="com.she.safety.model.WkodMatMst">
+		select swmm.mat_mst_no
+			,swmm.wkod_mat_class
+			,WMCCode.code_nm as wkod_mat_class_nm
+			,swmm.wkod_mat_nm
+			,swmm.use_yn
+			,case when swmm.use_yn = 'Y' then '사용'
+			else '미사용' end as use_yn_nm
+			,swmm.sort_order
+		from saf_wkod_mat_mst swmm
+		inner join com_code_master WMCCode 
+		on swmm.wkod_mat_class = WMCCode.code 
+		and WMCCode.code_group_cd = 'WKOD_MAT_CLASS'
+		where 1=1
+		<if test="wkodMatClass != null and !wkodMatClass.equals('')">
+			and swmm.wkod_mat_class = #{wkodMatClass}
+		</if>
+		<if test="wkodMatNm != null and !wkodMatNm.equals('')">
+			and swmm.wkod_mat_nm like '%' + #{wkodMatNm} + '%'
+		</if>
+		order by swmm.sort_order
+    </select>
+    
+    <select id="getWkodMatMst" resultType="com.she.safety.model.WkodMatMst">
+		select swmm.mat_mst_no
+			,swmm.wkod_mat_class
+			,WMCCode.code_nm as wkod_mat_class_nm
+			,swmm.wkod_mat_nm
+			,swmm.use_yn
+			,case when swmm.use_yn = 'Y' then '사용'
+			else '미사용' end as use_yn_nm
+			,swmm.sort_order
+		from saf_wkod_mat_mst swmm
+		inner join com_code_master WMCCode 
+		on swmm.wkod_mat_class = WMCCode.code 
+		and WMCCode.code_group_cd = 'WKOD_MAT_CLASS'
+		where 1=1
+		and swmm.mat_mst_no = #{matMstNo}
+    </select>
+    
+    <insert id="createWkodMatMst" parameterType="com.she.safety.model.WkodMatMst">
+       	<selectKey keyProperty="matMstNo" resultType="String" order="BEFORE">
+    		select next value for seq_saf_wkod_mat_mst
+	  	</selectKey>
+        insert into saf_wkod_mat_mst
+			(mat_mst_no
+			,wkod_mat_class
+			,wkod_mat_nm
+			,use_yn
+			,sort_order)
+	     values
+	   		(#{matMstNo}
+	   		,#{wkodMatClass}
+	   		,#{wkodMatNm}
+	   		,#{useYn}
+	   		,#{sortOrder})
+    </insert>
+    
+    <update id="updateWkodMatMst" parameterType="com.she.safety.model.WkodMatMst">
+        update saf_wkod_mat_mst
+		set wkod_mat_class 	= #{wkodMatClass}
+			,wkod_mat_nm 	= #{wkodMatNm}
+			,use_yn 		= #{useYn}
+			,sort_order 	= #{sortOrder}
+        where mat_mst_no 	= #{matMstNo}
+    </update>
+</mapper>

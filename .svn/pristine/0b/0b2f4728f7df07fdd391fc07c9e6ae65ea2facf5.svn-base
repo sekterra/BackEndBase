@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.safety.wkod.mapper.WkodChkItemMapper">
+    <select id="getWkodChkItems" parameterType="HashMap" resultType="com.she.safety.model.WkodChkItem">
+		select swci.chk_item_no
+			,swci.wkod_kind_cd
+			,WKCode.code_nm as wkod_kind_nm
+			,swci.wkod_duty_cd
+			,CDTCode.code_nm as wkod_duty_nm
+			,swci.chk_item_nm
+			,swci.use_yn
+			,case when swci.use_yn = 'Y' then '사용'
+			else '미사용' end as use_yn_nm
+			,swci.sort_order
+		 from saf_wkod_chk_item swci
+		 inner join com_code_master WKCode 
+		 on swci.wkod_kind_cd = WKCode.code 
+		 and WKCode.code_group_cd = 'WKOD_KIND'
+		 inner join com_code_master CDTCode 
+		 on swci.wkod_duty_cd = CDTCode.code 
+		 and CDTCode.code_group_cd = 'WKOD_DPTY'
+		 where 1=1
+		 <if test="wkodKindCd != null and !wkodKindCd.equals('')">
+			and swci.wkod_kind_cd = #{wkodKindCd}
+		 </if>
+		 <if test="wkodDutyCd != null and !wkodDutyCd.equals('')">
+			and swci.wkod_duty_cd = #{wkodDutyCd}
+		 </if>
+		 <if test="chkItemNm != null and !chkItemNm.equals('')">
+			and swci.chk_item_nm like '%' + #{chkItemNm} + '%'
+		 </if>
+		 order by swci.sort_order
+    </select>
+    
+    <select id="getWkodChkItem" resultType="com.she.safety.model.WkodChkItem">
+		select swci.chk_item_no
+			,swci.wkod_kind_cd
+			,WKCode.code_nm as wkod_kind_nm
+			,swci.wkod_duty_cd
+			,CDTCode.code_nm as wkod_duty_nm
+			,swci.chk_item_nm
+			,swci.use_yn
+			,case when swci.use_yn = 'Y' then '사용'
+			else '미사용' end as use_yn_nm
+			,swci.sort_order
+		from saf_wkod_chk_item swci
+		inner join com_code_master WKCode 
+		on swci.wkod_kind_cd = WKCode.code 
+		and WKCode.code_group_cd = 'WKOD_KIND'
+		inner join com_code_master CDTCode 
+		on swci.wkod_duty_cd = CDTCode.code 
+		and CDTCode.code_group_cd = 'WKOD_DPTY'
+		where 1=1
+		and swci.chk_item_no = #{chkItemNo}
+    </select>
+    
+    <insert id="createWkodChkItem" parameterType="com.she.safety.model.WkodChkItem">
+       	<selectKey keyProperty="chkItemNo" resultType="String" order="BEFORE">
+    		select next value for seq_saf_wkod_chk_item
+	  	</selectKey>
+        insert into saf_wkod_chk_item
+			(chk_item_no
+			,wkod_kind_cd
+			,wkod_duty_cd
+			,chk_item_nm
+			,use_yn
+			,sort_order)
+	     values
+	   		(#{chkItemNo}
+	   		,#{wkodKindCd}
+	   		,#{wkodDutyCd}
+	   		,#{chkItemNm}
+	   		,#{useYn}
+	   		,#{sortOrder})
+    </insert>
+    
+    <update id="updateWkodChkItem" parameterType="com.she.safety.model.WkodChkItem">
+        update saf_wkod_chk_item
+		set wkod_kind_cd 	= #{wkodKindCd}
+			,wkod_duty_cd 	= #{wkodDutyCd}
+			,chk_item_nm 	= #{chkItemNm}
+			,use_yn 		= #{useYn}
+			,sort_order 	= #{sortOrder}
+        where chk_item_no 	= #{chkItemNo}
+    </update>
+</mapper>

@@ -1,0 +1,97 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+package com.she.safety.wkod.controller;
+
+import java.util.HashMap;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.she.safety.model.WkodMatMst;
+import com.she.safety.wkod.service.WkodMatMstService;
+import com.she.utils.RequestMapper;
+
+/**
+ * 취급물질
+ *
+ */
+@RestController
+public class WkodMatMstController 
+{
+	// TODO : queryString 변환을 위한 mapper 선언
+	@Autowired
+	private RequestMapper requestMapper;
+	
+	@Autowired
+	private WkodMatMstService wkodMatMstService;
+
+	/**
+	 * 취급물질 조회
+	 * @param parameter (취급물질분류 코드, 취급물질명)
+	 * @return 취급물질 목록
+	 * @throws Exception
+	 */
+	@GetMapping("/api/saf/wkod/wkodMatMsts")
+	public ResponseEntity<List<WkodMatMst>> getWkodMatMsts(@RequestParam HashMap<String, Object> parameter) throws Exception 
+	{
+		HashMap <String, Object> map = this.requestMapper.convertAsParameter(parameter);
+		String wkodMatClass = map.containsKey("wkodMatClass")? map.get("wkodMatClass").toString():"";
+		String wkodMatNm = map.containsKey("wkodMatNm")? map.get("wkodMatNm").toString():"";
+		
+		List<WkodMatMst> wkodMatMst = wkodMatMstService.getWkodMatMsts(wkodMatClass, wkodMatNm);
+		return ResponseEntity.ok().body(wkodMatMst);
+	}
+	
+	/**
+	 * 취급물질 상세 조회
+	 * @param matMstNo 취급물질 코드
+	 * @return 취급물질
+	 * @throws Exception
+	 */
+	@GetMapping("/api/saf/wkod/wkodMatMst/{matMstNo}")
+	public ResponseEntity<WkodMatMst> getWkodMatMst(@PathVariable("matMstNo") String matMstNo) throws Exception 
+	{
+		WkodMatMst wkodMatMst = wkodMatMstService.getWkodMatMst(matMstNo);
+		return ResponseEntity.ok().body(wkodMatMst);
+	}
+	
+	/**
+	 * 취급물질 생성
+	 * @param wkodMatMst 취급물질
+	 * @return 취급물질 Key값
+	 * @throws Exception
+	 */
+	@PostMapping("/api/saf/wkod/wkodMatMst")
+	public ResponseEntity<String> createDisease(@RequestBody WkodMatMst wkodMatMst) throws Exception 
+	{
+		return ResponseEntity.ok().body(wkodMatMstService.createWkodMatMst(wkodMatMst));
+	}
+	
+	/**
+	 * 취급물질 수정
+	 * @param wkodMatMst 취급물질
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PutMapping("/api/saf/wkod/wkodMatMst")
+    public ResponseEntity<Integer> updateDisease(@RequestBody WkodMatMst wkodMatMst) throws Exception 
+	{
+        return ResponseEntity.ok().body(wkodMatMstService.updateWkodMatMst(wkodMatMst));
+    }
+}

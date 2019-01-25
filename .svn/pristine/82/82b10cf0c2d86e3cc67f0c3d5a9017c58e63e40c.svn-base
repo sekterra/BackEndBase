@@ -1,0 +1,413 @@
+/** 
+ * Copyright (C) 2019, 2019 All Right Reserved, http://www.yullin.com/
+ * 
+ * SHE Business can not be copied and/or distributed without the express
+ * permission of Yullin Technologies
+ * 
+ * Unauthorized copying of this file, via any medium is strictly prohibited
+ * Proprietary and confidential
+ * 
+ */
+
+package com.she.health.checkup.controller;
+
+import java.util.HashMap;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.she.health.checkup.service.CheckupPlanService;
+import com.she.health.model.CheckupOrgTestItem;
+import com.she.health.model.CheckupPlan;
+import com.she.health.model.CheckupPlanOrg;
+import com.she.health.model.CheckupResult;
+import com.she.health.model.CheckupStatus;
+import com.she.health.model.CheckupUser;
+import com.she.utils.Methods;
+import com.she.utils.RequestMapper;
+
+/**
+ * 건강검진계획
+ *
+ */
+@RestController
+@RequestMapping("api/hea/checkup")
+public class CheckupPlanController
+{
+	// TODO : queryString 변환을 위한 mapper 선언
+	@Autowired
+	private RequestMapper requestMapper;
+	
+	@Autowired
+	private CheckupPlanService checkupPlanService;
+	
+	/**
+	 * 건강검진계획 조회
+	 * @param parameter 검색조건
+	 * @return 건강검진계획 목록
+	 */
+	@GetMapping("/checkupplans")
+	public ResponseEntity<List<CheckupPlan>> getCheckupPlans(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{		
+		HashMap<String, Object> map = this.requestMapper.convertAsParameter(parameter);		
+		String checkupYear = map.containsKey("checkupYear")? map.get("checkupYear").toString():"";
+		String[] heaCheckupPlanPeriod = this.requestMapper.convertObjectListAsStringArray(map.get("heaCheckupPlanPeriod"));
+		String startYmd = "";
+		String endYmd = "";
+		if(heaCheckupPlanPeriod != null && heaCheckupPlanPeriod.length == 2)
+		{
+			startYmd = heaCheckupPlanPeriod[0];
+			endYmd = heaCheckupPlanPeriod[1];
+		}
+		
+		List<CheckupPlan> checkupPlans = this.checkupPlanService.getCheckupPlans(checkupYear, startYmd, endYmd);
+
+		return ResponseEntity.ok().body(checkupPlans);
+	}
+	
+	/**
+	 * 건강검진계획 상세 조회
+	 * @param heaCheckupPlanNo
+	 * @return 건강검진계획
+	 * @throws Exception
+	 */
+	@GetMapping("/checkupplan/{heaCheckupPlanNo}")
+	public ResponseEntity<CheckupPlan> getCheckupPlan(@PathVariable(name = "heaCheckupPlanNo") int heaCheckupPlanNo) throws Exception
+	{
+		CheckupPlan checkupPlan = this.checkupPlanService.getCheckupPlan(heaCheckupPlanNo);
+		
+		return ResponseEntity.ok().body(checkupPlan);
+	}
+	
+	/**
+	 * 건강검진계획 생성
+	 * @param checkupPlan 건강검진계획
+	 * @return 건강검진계획번호
+	 * @throws Exception
+	 */
+	@PostMapping("/checkupplan")	
+	public ResponseEntity<Integer> createCheckupPlan(@RequestBody CheckupPlan checkupPlan) throws Exception
+	{
+		checkupPlan.setCreateUserId("dev");
+		Integer checkupPlanNo = this.checkupPlanService.createCheckupPlan(checkupPlan);
+		
+		return ResponseEntity.ok().body(checkupPlanNo);
+	}
+	
+	/**
+	 * 건강검진계획 수정
+	 * @param checkupPlan 건강검진계획
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PutMapping("/checkupplan")
+	public ResponseEntity<Integer> updateCheckupPlan(@RequestBody CheckupPlan checkupPlan) throws Exception //@RequestBody CheckupPlan checkupPlan
+	{
+		checkupPlan.setUpdateUserId("dev");
+		Integer count = this.checkupPlanService.updateCheckupPlan(checkupPlan);
+		
+		return ResponseEntity.ok().body(count);
+	}
+	
+	@DeleteMapping("/checkupplan")
+	public ResponseEntity<Integer> deleteCheckupPlan(@RequestBody List<CheckupPlan> checkupPlans) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.deleteCheckupPlan(checkupPlans));
+	}
+	
+	/**
+	 * 건강검진계획별 대상자 지정
+	 * @param CheckupUsers 건강검진 대상자 목록
+	 * @return 생성행수
+	 * @throws Exception
+	 */
+	@PostMapping("/checkupusers")
+	public ResponseEntity<Integer> createCheckupUsers(@RequestBody List<CheckupUser> checkupUsers) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.createCheckupUsers(checkupUsers));
+	}
+	
+	/**
+	 * 강검진계획별 대상자 해제
+	 * @param CheckupUsers 건강검진 대상자 목록
+	 * @return 생성행수
+	 * @throws Exception
+	 */
+	@DeleteMapping("/checkupusers")
+	public ResponseEntity<Integer> deleteCheckupUsers(@RequestBody List<CheckupUser> checkupUsers) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.deleteCheckupUsers(checkupUsers));
+	}
+	
+	/**
+	 * 검색조건 해당 대상자 조회
+	 * @param parameter 검색조건
+	 * @return 대상자목록
+	 * @throws Exception
+	 */
+	@GetMapping("/checkupusers")
+	public ResponseEntity<List<CheckupUser>> getCheckupUsers(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap <String, Object> map = this.requestMapper.convertAsParameter(parameter);		
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo")? Integer.parseInt(map.get("heaCheckupPlanNo").toString()):0;
+		int processNo = map.containsKey("processNo")? Integer.parseInt(map.get("processNo").toString()):0;
+		String deptCd = map.containsKey("deptCd")? map.get("deptCd").toString():"";
+		String userId = map.containsKey("userId")? map.get("userId").toString():"";
+		String userNm = map.containsKey("userNm")? map.get("userNm").toString():"";
+		String notifyPlanYn = map.containsKey("notifyPlanYn")? map.get("notifyPlanYn").toString():"";
+		String reserveYn = map.containsKey("reserveYn")? map.get("reserveYn").toString():"";
+		String[] reservePeriod = this.requestMapper.convertObjectListAsStringArray(map.get("reservePeriod"));
+		String reserveYmdStart = "";
+		String reserveYmdEnd = "";
+		if(reservePeriod != null && reservePeriod.length == 2)
+		{
+			reserveYmdStart = reservePeriod[0];
+			reserveYmdEnd = reservePeriod[1];
+		}
+		int[] heaCheckedOrgNos = this.requestMapper.convertObjectListAsIntArray(map.get("heaCheckedOrgNos"));
+		int[] heaCheckupOrgNos = this.requestMapper.convertObjectListAsIntArray(map.get("heaCheckupOrgNos"));
+		String statusYn = map.containsKey("statusYn")? map.get("statusYn").toString():"";
+		
+		List<CheckupUser> checkupUsers = this.checkupPlanService.getCheckupUsers(
+				heaCheckupPlanNo, 
+				processNo, 
+				deptCd, 
+				userId, 
+				userNm, 
+				notifyPlanYn, 
+				reserveYn,
+				reserveYmdStart,
+				reserveYmdEnd,
+				heaCheckedOrgNos,
+				heaCheckupOrgNos,
+				statusYn);
+		
+		return ResponseEntity.ok().body(checkupUsers);
+	}
+	
+	/**
+	 * 검색조건 해당 대상자 조회
+	 * @param heaCheckupPlanNo 검색조건
+	 * @return 대상자목록
+	 * @throws Exception
+	 */
+	@GetMapping("/checkupusersnotarget")
+	public ResponseEntity<List<CheckupUser>> getCheckupUsersNoTarget(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap <String, Object> map = this.requestMapper.convertAsParameter(parameter);		
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo")? Integer.parseInt(map.get("heaCheckupPlanNo").toString()):0;
+		int processNo = map.containsKey("processNo")? Integer.parseInt(map.get("processNo").toString()):0;
+		String deptCd = map.containsKey("deptCd")? map.get("deptCd").toString():"";
+		String userId = map.containsKey("userId")? map.get("userId").toString():"";
+		String userNm = map.containsKey("userNm")? map.get("userNm").toString():"";
+		String prevYearCheckupUserYn = map.containsKey("prevYearCheckupUserYn")? map.get("prevYearCheckupUserYn").toString():"";
+		int age = map.containsKey("age")? Integer.parseInt(map.get("age").toString()):0;
+		
+		List<CheckupUser> checkupUsers = this.checkupPlanService.getCheckupUsersNoTarget(
+				heaCheckupPlanNo, 
+				processNo, 
+				deptCd, 
+				userId, 
+				userNm, 
+				prevYearCheckupUserYn, age);
+		
+		return ResponseEntity.ok().body(checkupUsers);
+	}
+	
+	
+	/**
+	 * 건강검진계획별 기관 조회
+	 * @param parameter (건강검진계획번호, 건강검진기관번호, 기준날짜)
+	 * @return 건강검진계획별 기관 목록
+	 */
+	@GetMapping("/checkupplanorgs")
+	public ResponseEntity<List<CheckupPlanOrg>> getCheckupPlanOrgs(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap<String, Object> map = requestMapper.convertAsParameter(parameter);
+		
+		// 건강검진계획번호
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo") ? Integer.parseInt(map.get("heaCheckupPlanNo").toString()) : 0;
+		// 건강검진기관번호
+		int heaCheckupOrgNo = map.containsKey("heaCheckupOrgNo") ? Integer.parseInt(map.get("heaCheckupOrgNo").toString()) : 0;
+		// 기준 날짜
+		String standardYmd = map.containsKey("standardYmd") ? map.get("standardYmd").toString() : "";
+		
+		List<CheckupPlanOrg> checkupPlanOrgs = this.checkupPlanService.getCheckupPlanOrgs(heaCheckupPlanNo, heaCheckupOrgNo, standardYmd);
+		
+		return ResponseEntity.ok().body(checkupPlanOrgs);
+	}
+	
+	/**
+	 * 건강검진계획별 기관일정 수정
+	 * @param checkupPlanOrgs 건강검진기관일정목록
+	 * @return 성공여부
+	 * @throws Exception
+	 */
+	@PutMapping("/checkupplanorgs")
+	public ResponseEntity<Integer> updateCheckupPlanOrgs(@RequestBody List<CheckupPlanOrg> checkupPlanOrgs) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.updateCheckupPlanOrgs(checkupPlanOrgs));
+	}
+	
+	/**
+	 * 등록된 건강검진 계획별 사용자 예약 현황 목록 조회
+	 * @param parameter (건강검진계획번호)
+	 * @return 대상자목록
+	 */
+	@GetMapping("/checkupreserves")
+	public ResponseEntity<List<CheckupUser>> getCheckupReserves(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap<String, Object> map = requestMapper.convertAsParameter(parameter);
+		
+		// 건강검진계획번호
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo") ? Integer.parseInt(map.get("heaCheckupPlanNo").toString()) : 0;
+		// 사용자 ID
+//		String userId = "dev";
+		String userId = map.containsKey("userId") ? map.get("userId").toString() : "";
+		
+		List<CheckupUser> checkupUsers = this.checkupPlanService.getCheckupReserves(userId, heaCheckupPlanNo);
+		return ResponseEntity.ok().body(checkupUsers);
+	}
+	
+	/**
+	 * 월별 검진기관별 예약인원 조회
+	 * @param parameter 검색조건
+	 * @return 기관별예약현황
+	 * @throws Exception
+	 */
+	@GetMapping("/checkupreserveorgstatus")
+	public ResponseEntity<List<CheckupPlanOrg>> getCheckupReserveOrgStatus(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap<String, Object> map = requestMapper.convertAsParameter(parameter);		
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo") ? Integer.parseInt(map.get("heaCheckupPlanNo").toString()) : 0;
+		int heaCheckupOrgNo = map.containsKey("heaCheckupOrgNo") ? Integer.parseInt(map.get("heaCheckupOrgNo").toString()) : 0;		
+		String yearMonth = map.containsKey("yearMonth") ? map.get("yearMonth").toString() : "";
+		
+		List<CheckupPlanOrg> checkupPlanOrgs = this.checkupPlanService.getCheckupReserveOrgStatus(heaCheckupPlanNo, heaCheckupOrgNo, yearMonth);
+		
+		return ResponseEntity.ok().body(checkupPlanOrgs);
+	}
+	
+	/**
+	 * 건강검진 사용자 예약변경
+	 * @param CheckupResult 
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PutMapping("/checkupreserves")
+	public ResponseEntity<Integer> updateCheckupReserveChange(@RequestBody List<CheckupUser> checkupUsers) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.updateCheckupReserveChange(checkupUsers));
+	}
+
+	/**
+	 * 건강검진 사용자 예약변경
+	 * @param CheckupResult 
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PostMapping("/checkupreserves")
+	public ResponseEntity<Integer> updateCheckupReserveBatch(@RequestBody List<CheckupUser> checkupUsers) throws Exception
+	{
+		return ResponseEntity.ok().body(this.checkupPlanService.updateCheckupReserveBatch(checkupUsers));
+	}	
+	
+	/**
+	 * 건강검진 사용자 예약
+	 * @param CheckupResult 
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PostMapping("/checkupreserve")
+	public ResponseEntity<Integer> updateCheckupReserve(@RequestBody CheckupUser checkupUser) throws Exception
+	{
+		checkupUser.setUpdateUserId(Methods.getLoginUser().getUserId());
+		checkupUser.setDeptCd(Methods.getLoginUser().getDeptCd());
+		return ResponseEntity.ok().body(this.checkupPlanService.updateCheckupReserve(checkupUser));
+	}
+	
+	/**
+	 * 건강검진 사용자 예약 변경
+	 * @param CheckupResult 
+	 * @return 변경 행 수
+	 * @throws Exception
+	 */
+	@PutMapping("/checkupreserve")
+	public ResponseEntity<Integer> updateCheckupReserveChange(@RequestBody CheckupUser checkupUser) throws Exception
+	{
+		checkupUser.setUpdateUserId(Methods.getLoginUser().getUserId());
+		checkupUser.setDeptCd(Methods.getLoginUser().getDeptCd());
+		return ResponseEntity.ok().body(this.checkupPlanService.updateCheckupReserveChange(checkupUser));
+	}
+	
+	/**
+	 * 건강검진계획별 기관별 항목 조회
+	 * @param parameter (사용자 ID)
+	 * @return 대상자목록
+	 */
+	@GetMapping("/checkupplanorgtestitems")
+	public ResponseEntity<List<CheckupOrgTestItem>> getCheckupPlanOrgTestItems(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap<String, Object> map = requestMapper.convertAsParameter(parameter);
+		
+		// 건강검진계획번호
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo") ? Integer.parseInt(map.get("heaCheckupPlanNo").toString()) : 0;
+		// 건강검진계획번호
+		int heaCheckupOrgNo = map.containsKey("heaCheckupOrgNo") ? Integer.parseInt(map.get("heaCheckupOrgNo").toString()) : 0;
+		// 사용자 ID
+		String userId = map.containsKey("userId") ? map.get("userId").toString() : "dev";
+		
+		List<CheckupOrgTestItem> testitems = this.checkupPlanService.getCheckupPlanOrgTestItems(heaCheckupPlanNo, heaCheckupOrgNo, userId);
+		
+		return ResponseEntity.ok().body(testitems);
+	}
+	
+//	/**
+//	 * 
+//	 * @param 
+//	 * @return 
+//	 * @throws Exception
+//	 */
+//	@GetMapping("/rsrvdates")
+//	public ResponseEntity<List<HashMap<String, Object>>> getRsrvDates(@RequestParam HashMap<String, Object> parameter) throws Exception
+//	{
+//		HashMap <String, Object> map = this.requestMapper.convertAsParameter(parameter);
+//		String month = map.containsKey("month")? map.get("month").toString() : "";
+//		int heaCheckupOrgNo = map.containsKey("heaCheckupOrgNo") ? Integer.parseInt(map.get("heaCheckupOrgNo").toString()) : 0;
+//		
+//		List<HashMap <String, Object>> resultList = checkupPlanService.getRsrvDates(month, heaCheckupOrgNo);
+//		return ResponseEntity.ok().body(resultList);
+//	}
+	
+	/**
+	 * 수검현황 조회
+	 * @param parameter 검색조건
+	 * @return 수검현황 목록
+	 * @throws Exception
+	 */
+	@GetMapping("/checkupstatuses")
+	public ResponseEntity<List<CheckupStatus>> getCheckupStatuses(@RequestParam HashMap<String, Object> parameter) throws Exception
+	{
+		HashMap<String, Object> map = requestMapper.convertAsParameter(parameter);
+		
+		int heaCheckupPlanNo = map.containsKey("heaCheckupPlanNo") ? Integer.parseInt(map.get("heaCheckupPlanNo").toString()) : 0;
+		String reserveYmd = map.containsKey("reserveYmd") ? map.get("reserveYmd").toString() : "";
+		int[] heaCheckupOrgNos = this.requestMapper.convertObjectListAsIntArray(map.get("heaCheckupOrgNos"));
+		//int heaCheckupOrgNo = map.containsKey("heaCheckupOrgNo") ? Integer.parseInt(map.get("heaCheckupOrgNo").toString()) : 0;
+		String checkupStatus = map.containsKey("checkupStatus") ? map.get("checkupStatus").toString() : "N";
+		
+		List<CheckupStatus> checkupStatuses = this.checkupPlanService.getCheckupStatuses(heaCheckupPlanNo, reserveYmd, heaCheckupOrgNos, checkupStatus);
+		
+		return ResponseEntity.ok().body(checkupStatuses);
+	}
+}

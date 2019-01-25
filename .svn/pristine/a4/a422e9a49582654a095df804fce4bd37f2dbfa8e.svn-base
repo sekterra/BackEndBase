@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.she.health.checkup.mapper.CheckupResultUploadMapper">
+    <update id="uploadExcelCheckupResult" parameterType="com.she.health.model.CheckupResult">
+  		update hea_checkup_result
+		set hea_checked_org_no = #{heaCheckedOrgNo}
+			, hea_checked_ymd = #{heaCheckedYmd}
+			, overall_opinion = #{overallOpinion}
+			, update_user_id = #{updateUserId}
+			, update_dt = getdate()
+		where hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and user_id = #{userId}
+    </update>
+    
+    <update id="uploadExcelTestItemResult" parameterType="com.she.health.model.TestItemResult">	  	
+	  	<selectKey keyProperty="heaCheckupOrgTestItemNo" resultType="int" order="BEFORE">
+			select ot.hea_checkup_org_test_item_no
+			from hea_checkup_plan p
+			inner join hea_checkup_plan_org po
+			on po.hea_checkup_plan_no = po.hea_checkup_plan_no
+			inner join  hea_checkup_org o
+			on po.hea_checkup_org_no = o.hea_checkup_org_no
+			inner join hea_checkup_result r
+			on p.hea_checkup_plan_no = r.hea_checkup_plan_no
+			and r.user_id = #{userId}
+			inner join hea_checkup_org_test_item ot
+			on o.hea_checkup_org_no = ot.hea_checkup_org_no
+			and r.hea_checkup_type_cd = ot.hea_checkup_type_cd
+			and ot.year in (convert(char(4), p.start_ymd), convert(char(4), p.end_ymd))
+			inner join hea_test_item t
+			on ot.hea_test_item_cd = t.hea_test_item_cd
+			where p.hea_checkup_plan_no = #{heaCheckupPlanNo}
+			and o.hea_checkup_org_no = #{heaCheckupOrgNo}
+			and t.hea_test_item_cd = #{heaTestItemCd}
+	  	</selectKey>
+	  	
+	  	merge hea_test_item_result r
+		using ( select 0 as col ) as t
+		on r.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and r.user_id = #{userId}
+		and r.hea_checkup_org_test_item_no = #{heaCheckupOrgTestItemNo}
+		when matched then
+			update set r.num_result = #{numResult}
+				, r.char_result = #{charResult}
+				, update_user_id = #{updateUserId}
+				, update_dt = getdate()
+		when not matched then
+			insert (
+				hea_checkup_plan_no
+				, user_id
+				, hea_checkup_org_test_item_no
+				, hea_test_item_cd
+				, num_result
+				, char_result
+				, create_user_id
+				, create_dt
+			)
+			values (
+				#{heaCheckupPlanNo}
+				, #{userId}
+				, #{heaCheckupOrgTestItemNo}
+				, #{heaTestItemCd}
+				, #{numResult}
+				, #{charResult}
+				, #{createUserId}
+				, getdate()
+			);
+    </update>
+
+	<update id="uploadExcelCheckupResultDiag" parameterType="com.she.health.model.CheckupResultDiag">
+	  	merge hea_checkup_result_diag r
+		using ( select 0 as col ) as t
+		on r.hea_checkup_plan_no = #{heaCheckupPlanNo}
+		and r.user_id = #{userId}
+		and r.hea_disease_cd = #{heaDiseaseCd}
+		when matched then
+			update set update_user_id = #{updateUserId}
+				, update_dt = getdate()
+		when not matched then
+			insert (
+				hea_checkup_plan_no
+				, user_id
+				, hea_disease_cd
+				, hea_diagnose_cd
+				, gen_yn
+				, create_user_id
+				, create_dt
+			)
+			values (
+				#{heaCheckupPlanNo}
+				, #{userId}
+				, #{heaDiseaseCd}
+				, #{heaDiagnoseCd}
+				, 'N'
+				, #{updateUserId}
+				, getdate()
+				);
+    </update>
+</mapper>
